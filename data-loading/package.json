@@ -1,0 +1,15 @@
+{
+  "name": "tb2-data-loading",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.0",
+    "read-last-lines": "^1.7.2"
+  }
+}
