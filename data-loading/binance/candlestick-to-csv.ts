@@ -1,10 +1,13 @@
+import * as readLastLines from "read-last-lines"
+import * as fetch from "node-fetch"
+import { promises as fsP } from "fs"
+import * as fs from "fs"
+import * as R from "ramda"
+import * as csvWriter from "csv-write-stream"
 import { URLSearchParams } from "url"
 
-const fetch = require("node-fetch")
 const BASE_ENDPOINT = "https://api.binance.com"
-const DATA_FILE_PATH = "data/"
-
-const readLastLines = require("read-last-lines")
+const DATA_FILE_PATH = "binance/data/"
 
 /**
  * symbol 	STRING 	YES
@@ -12,6 +15,24 @@ const readLastLines = require("read-last-lines")
  * startTime 	LONG 	NO 	Timestamp in ms to get aggregate trades from INCLUSIVE.
  * endTime 	LONG 	NO 	Timestamp in ms to get aggregate trades until INCLUSIVE.
  * limit 	INT 	NO 	Default 500; max 1000.
+ *
+ * returns:
+ * [
+ *  [
+ *   1499040000000,      // Open time
+ *   "0.01634790",       // Open
+ *   "0.80000000",       // High
+ *   "0.01575800",       // Low
+ *   "0.01577100",       // Close
+ *   "148976.11427815",  // Volume
+ *   1499644799999,      // Close time
+ *   "2434.19055334",    // Quote asset volume
+ *   308,                // Number of trades
+ *   "1756.87402397",    // Taker buy base asset volume
+ *   "28.46694368",      // Taker buy quote asset volume
+ *   "17928899.62484339" // Ignore.
+ *  ]
+ * ]
  */
 
 export async function getCandlesticks(
@@ -20,11 +41,11 @@ export async function getCandlesticks(
   startTime?: number,
   endTime?: number,
   limit: number = 1000
-) {
+): Promise<[][]> {
   const params = new URLSearchParams({
     symbol,
     interval,
-    ...(startTime != null ? { fromId: startTime.toString() } : {}),
+    ...(startTime != null ? { startTime: startTime.toString() } : {}),
     ...(endTime != null ? { endTime: endTime.toString() } : {}),
     limit: limit.toString(),
   })
@@ -43,20 +64,72 @@ export async function getCandlesticks(
   }
 }
 
-async function getLastCandlestickTime(fileName) {
+async function getLastCandlestickTime(filePath) {
   try {
-    readLastLines
-      .read(DATA_FILE_PATH + fileName, 1)
-      .then(lines => console.log(lines))
+    if (fs.existsSync(filePath)) {
+      return readLastLines
+        .read(filePath, 1)
+        .then((lines: string) => lines.split(",")[6])
+    } else {
+      return 0
+    }
   } catch (e) {
     return 0
   }
 }
 
-function candlestickToCSV(symbol: string, interval: string) {
+async function candlestickToCSV(symbol: string, interval: string) {
   const fileName = "candlestick-" + symbol + "-" + interval + ".csv"
+  const filePath = DATA_FILE_PATH + fileName
+  let newDataPoints = 0
 
-  const lastTime = getLastCandlestickTime(fileName)
+  const writer = csvWriter({
+    headers: [
+      "open time",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume",
+      "close time",
+      "quote asset volume",
+      "number of trades",
+      "taker buy base asset volume",
+      "taker buy quote asset volume",
+      "ignore",
+    ],
+    sendHeaders: !fs.existsSync(filePath),
+  })
 
-  // get candlestick data 
+  let lastTime = await getLastCandlestickTime(filePath)
+  if (!fs.existsSync(filePath)) {
+    console.log("The file does not exist. Will create file.")
+    try {
+      await fsP.writeFile(filePath, "")
+      console.log("File created at " + filePath)
+    } catch (e) {
+      console.log("Error, could not create file!")
+      throw e
+    }
+  }
+
+  writer.pipe(fs.createWriteStream(filePath, { flags: "a" }))
+
+  let newDataPointsInThisRequest = 1
+  while (newDataPointsInThisRequest > 0) {
+    console.log("last line: " + lastTime)
+    const candlesticks = await getCandlesticks(symbol, interval, lastTime)
+
+    newDataPointsInThisRequest = candlestickToCSV.length
+    newDataPoints += candlesticks.length
+    R.map(data => {
+      writer.write(data)
+    }, candlesticks)
+    lastTime = await getLastCandlestickTime(filePath)
+  }
+  writer.end()
+
+  console.log("Number of new data points: " + newDataPoints)
 }
+
+candlestickToCSV("BTCUSDT", "1h")
