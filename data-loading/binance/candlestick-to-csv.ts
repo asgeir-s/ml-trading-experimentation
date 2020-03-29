@@ -120,7 +120,7 @@ async function candlestickToCSV(symbol: string, interval: string) {
     console.log("last line: " + lastTime)
     const candlesticks = await getCandlesticks(symbol, interval, lastTime)
 
-    newDataPointsInThisRequest = candlestickToCSV.length
+    newDataPointsInThisRequest = candlesticks.length
     newDataPoints += candlesticks.length
     R.map(data => {
       writer.write(data)
