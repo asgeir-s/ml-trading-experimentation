@@ -132,4 +132,4 @@ async function candlestickToCSV(symbol: string, interval: string) {
   console.log("Number of new data points: " + newDataPoints)
 }
 
-candlestickToCSV("BTCUSDT", "1h")
+candlestickToCSV("BTCUSDT", "1m")
