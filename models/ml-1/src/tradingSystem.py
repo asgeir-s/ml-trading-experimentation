@@ -1,15 +1,21 @@
 import pandas as pd
 import numpy as np
-from model import generteTrainAndTestSet, setupAndTrainModel, evaluate, showInfo
+from model import generteTrainAndTestSet, setupAndTrainModel, evaluate, showInfo, continueTraining, generateTrainSet
 
 def prepearModel(candlesticsAndFeaturesWithTargetHistory: pd.DataFrame):
-    X_train, X_test, y_train, y_test = generteTrainAndTestSet(
-        candlesticsAndFeaturesWithTargetHistory
-    )
+    #X_train, X_test, y_train, y_test = generteTrainAndTestSet(
+    #    candlesticsAndFeaturesWithTargetHistory
+    #)
+    X_train, y_train = generateTrainSet(candlesticsAndFeaturesWithTargetHistory)
     xg_reg = setupAndTrainModel(X_train, y_train)
-    evaluate(xg_reg, X_test, y_test)
-    showInfo(xg_reg)
+    #evaluate(xg_reg, X_test, y_test)
+    #showInfo(xg_reg)
     return xg_reg
+
+def fitNewData(model, newData: pd.DataFrame):
+    X_train, y_train = generateTrainSet(newData)
+    return continueTraining(model, X_train, y_train)
+
 
 def generateSignals(model, period: pd.DataFrame) -> pd.DataFrame:
     result = pd.DataFrame(period.copy())
@@ -23,5 +29,4 @@ def generateSignals(model, period: pd.DataFrame) -> pd.DataFrame:
     conditions = [result["pred"] > upTreshold, result["pred"] < downTreshold]
     choices = ["BUY", "SELL"]
     result["trade"] = np.select(conditions, choices, default="none")
-    result["trade price"] = result.shift(periods=-1)["open"]
     return result

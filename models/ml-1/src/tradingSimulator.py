@@ -1,5 +1,5 @@
 import pandas as pd
-from tradingSystem import prepearModel, generateSignals
+from tradingSystem import prepearModel, generateSignals, fitNewData
 
 
 def createHistoryAndTestPeriodes(
@@ -95,10 +95,47 @@ def printResults(trades: pd.DataFrame):
     print(f"Percentage price change in period: {round(percentagePriceChange,2)}%")
 
 
-allCandlesticsAndFeaturesWithTarget = pd.read_csv(
+allCandlesticsAndFeaturesWithTarget: pd.DataFrame = pd.read_csv(
     "./data/candlesticsAndFeaturesWithTarget.csv"
 )
 
+startPosition = 1000
+# take first 1000 into training set
+firstPart = allCandlesticsAndFeaturesWithTarget.iloc[0:startPosition]
+
+# train the modell
+model = prepearModel(firstPart)
+
+stepSize = 100
+position = startPosition
+first = True
+while position < len(allCandlesticsAndFeaturesWithTarget):
+    # predict 100 data points
+    testPeriode = allCandlesticsAndFeaturesWithTarget.iloc[
+        position : position + stepSize
+    ]
+    tradingSignals = generateSignals(model, testPeriode)
+
+    tradingSignals.to_csv(
+        "data/tradingSignals.csv", mode="w" if first else "a", header=first
+    )
+
+    position = position + stepSize
+    # fit to the 100 new data points
+    model = prepearModel(allCandlesticsAndFeaturesWithTarget[0:position])
+    first = False
+
+tradingSignals = pd.read_csv("data/tradingSignals.csv")
+
+tradingSignals["trade price"] = tradingSignals.shift(periods=-1)["open"]
+tradingSignals = tradingSignals.drop(tradingSignals.tail(1).index)
+
+trades = simulateTrades(tradingSignals, 1000)
+
+trades.to_csv("data/trades.csv")
+
+printResults(trades)
+"""
 testPeriode, history = createHistoryAndTestPeriodes(
     2000, allCandlesticsAndFeaturesWithTarget
 )
@@ -116,3 +153,11 @@ trades = simulateTrades(tradingSignals, 1000)
 trades.to_csv("data/trades.csv")
 
 printResults(trades)
+
+
+roling test window:
+1. train on first 1000
+2. trade for 24 hours
+3. fit modell to the next 24 hours
+4. go to 2.
+"""

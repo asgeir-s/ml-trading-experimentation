@@ -19,13 +19,25 @@ def generteTrainAndTestSet(candlesticsAndFeaturesWithTarget: pd.DataFrame):
         candlesticsAndFeaturesWithTarget.iloc[:, :-1],
         candlesticsAndFeaturesWithTarget.iloc[:, -1],
     )
-    data_dmatrix = xgb.DMatrix(data=X, label=y)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=123
     )
 
     return X_train, X_test, y_train, y_test
+
+def generateTrainSet(candlesticsAndFeaturesWithTarget: pd.DataFrame):
+    candlesticsAndFeaturesWithTarget = candlesticsAndFeaturesWithTarget.drop(
+        columns=["open time", "close time"]
+    )
+    candlesticsAndFeaturesWithTarget = candlesticsAndFeaturesWithTarget.drop(
+        candlesticsAndFeaturesWithTarget.columns[1], axis=1
+    )
+    X_train, y_train = (
+        candlesticsAndFeaturesWithTarget.iloc[:, :-1],
+        candlesticsAndFeaturesWithTarget.iloc[:, -1],
+    )
+    return X_train, y_train
 
 
 def setupAndTrainModel(X_train, y_train):
@@ -42,6 +54,10 @@ def setupAndTrainModel(X_train, y_train):
     xg_reg.fit(X_train, y_train)
 
     return xg_reg
+
+def continueTraining(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
 
 
 def evaluate(xg_reg, X_test, y_test):
