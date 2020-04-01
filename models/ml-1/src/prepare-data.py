@@ -5,7 +5,6 @@ import ta
 from sklearn.model_selection import train_test_split
 
 
-
 def loadData() -> pd.DataFrame:
     df = pd.read_csv("../../data-loading/binance/data/candlestick-BTCUSDT-1h.csv").drop(
         columns=["ignore"]

@@ -19,7 +19,7 @@ def generateSignals(model, period: pd.DataFrame) -> pd.DataFrame:
     result["pred"] = model.predict(period)
 
     upTreshold = 0.4
-    downTreshold = -0.2
+    downTreshold = 0.1
     conditions = [result["pred"] > upTreshold, result["pred"] < downTreshold]
     choices = ["BUY", "SELL"]
     result["trade"] = np.select(conditions, choices, default="none")

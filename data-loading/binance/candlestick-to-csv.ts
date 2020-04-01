@@ -2,12 +2,12 @@ import * as readLastLines from "read-last-lines"
 import * as fetch from "node-fetch"
 import { promises as fsP } from "fs"
 import * as fs from "fs"
-import * as R from "ramda"
-import * as csvWriter from "csv-write-stream"
+import * as createCsvWriter from "csv-writer"
 import { URLSearchParams } from "url"
 
 const BASE_ENDPOINT = "https://api.binance.com"
 const DATA_FILE_PATH = "binance/data/"
+const csvWriterCreator = createCsvWriter.createArrayCsvWriter
 
 /**
  * symbol 	STRING 	YES
@@ -83,8 +83,9 @@ async function candlestickToCSV(symbol: string, interval: string) {
   const filePath = DATA_FILE_PATH + fileName
   let newDataPoints = 0
 
-  const writer = csvWriter({
-    headers: [
+  const csvWriter = csvWriterCreator({
+    path: filePath,
+    header: [
       "open time",
       "open",
       "high",
@@ -98,7 +99,6 @@ async function candlestickToCSV(symbol: string, interval: string) {
       "taker buy quote asset volume",
       "ignore",
     ],
-    sendHeaders: !fs.existsSync(filePath),
   })
 
   let lastTime = await getLastCandlestickTime(filePath)
@@ -113,8 +113,6 @@ async function candlestickToCSV(symbol: string, interval: string) {
     }
   }
 
-  writer.pipe(fs.createWriteStream(filePath, { flags: "a" }))
-
   let newDataPointsInThisRequest = 1
   while (newDataPointsInThisRequest > 0) {
     console.log("last line: " + lastTime)
@@ -122,14 +120,12 @@ async function candlestickToCSV(symbol: string, interval: string) {
 
     newDataPointsInThisRequest = candlesticks.length
     newDataPoints += candlesticks.length
-    R.map(data => {
-      writer.write(data)
-    }, candlesticks)
+    await csvWriter.writeRecords(candlesticks)
+
     lastTime = await getLastCandlestickTime(filePath)
   }
-  writer.end()
 
   console.log("Number of new data points: " + newDataPoints)
 }
 
-candlestickToCSV("BTCUSDT", "1m")
+candlestickToCSV("BTCUSDT", "1h")
