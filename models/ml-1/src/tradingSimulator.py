@@ -1,5 +1,5 @@
 import pandas as pd
-from tradingSystem import prepearModel, generateSignals, fitNewData
+from tradingSystem import prepearModel, generateSignal, fitNewData
 
 
 def createHistoryAndTestPeriodes(
@@ -37,8 +37,11 @@ def simulateTrades(signals: pd.DataFrame, startCash: int):
 
     for index, row in signals.iterrows():
         itemnumber += 1
-        signal = row["trade"]
+        signal = row["signal"]
         tradePrice = row["trade price"]
+
+        if status == "LONG" and (1 / openPrice * tradePrice) < 0.92:
+            signal = "SELL"
 
         if status == "NONE" and signal == "BUY":
             openTime = row["open time"]
@@ -99,36 +102,43 @@ allCandlesticsAndFeaturesWithTarget: pd.DataFrame = pd.read_csv(
     "./data/candlesticsAndFeaturesWithTarget.csv"
 )
 
-startPosition = 1000
+startPosition = 14000
 # take first 1000 into training set
 firstPart = allCandlesticsAndFeaturesWithTarget.iloc[0:startPosition]
 
 # train the modell
 model = prepearModel(firstPart)
 
-stepSize = 100
-position = startPosition
-first = True
-while position < len(allCandlesticsAndFeaturesWithTarget):
-    # predict 100 data points
+tradingSignals = None
+
+for position in range(startPosition, len(allCandlesticsAndFeaturesWithTarget)):
+    # for position in range(startPosition, 10400):
     testPeriode = allCandlesticsAndFeaturesWithTarget.iloc[
-        position : position + stepSize
-    ]
-    tradingSignals = generateSignals(model, testPeriode)
+        :position, :-1
+    ]  # remove target
 
-    tradingSignals.to_csv(
-        "data/tradingSignals.csv", mode="w" if first else "a", header=first
-    )
+    isFirst = position == startPosition
 
-    position = position + stepSize
+    tradingSignal = generateSignal(model, testPeriode)
+
+    if isFirst:
+        tradingSignals = tradingSignal
+    else:
+        tradingSignals = tradingSignals.append(tradingSignal)
+    # print(tradingSignals)
     # fit to the 100 new data points
-    model = prepearModel(allCandlesticsAndFeaturesWithTarget[0:position])
-    first = False
+    if position % 100 == 0:
+        model = prepearModel(allCandlesticsAndFeaturesWithTarget[0:position])
+        print(f"{position} of {len(allCandlesticsAndFeaturesWithTarget)}")
 
-tradingSignals = pd.read_csv("data/tradingSignals.csv")
+tradingSignals.to_csv("data/tradingSignals.csv", mode="w", header=True)
 
 tradingSignals["trade price"] = tradingSignals.shift(periods=-1)["open"]
-tradingSignals = tradingSignals.drop(tradingSignals.tail(1).index)
+tradingSignals = tradingSignals.drop(
+    tradingSignals.tail(1).index
+)  # drop last since we do not have a "trade price" for it
+
+# portifoliomanager
 
 trades = simulateTrades(tradingSignals, 1000)
 

@@ -31,7 +31,7 @@ def generateTrainSet(candlesticsAndFeaturesWithTarget: pd.DataFrame):
         columns=["open time", "close time"]
     )
     candlesticsAndFeaturesWithTarget = candlesticsAndFeaturesWithTarget.drop(
-        candlesticsAndFeaturesWithTarget.columns[1], axis=1
+        candlesticsAndFeaturesWithTarget.columns[0], axis=1
     )
     X_train, y_train = (
         candlesticsAndFeaturesWithTarget.iloc[:, :-1],
@@ -43,7 +43,7 @@ def generateTrainSet(candlesticsAndFeaturesWithTarget: pd.DataFrame):
 def setupAndTrainModel(X_train, y_train):
 
     xg_reg = xgb.XGBRegressor(
-        objective="reg:linear",
+        objective="reg:squarederror",
         colsample_bytree=0.3,
         learning_rate=0.8,
         max_depth=20,
