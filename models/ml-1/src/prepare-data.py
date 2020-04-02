@@ -13,14 +13,14 @@ def loadData() -> pd.DataFrame:
 
 
 def createTarget(df: pd.DataFrame) -> pd.DataFrame:
-    upTreshold = 1.04
-    downTreshold = 0.98
+    upTreshold = 1.003
+    downTreshold = 0.998
     conditions = [
-        ((1 / df["close"]) * df.shift(periods=-3)["close"]) > upTreshold,
-        ((1 / df["close"]) * df.shift(periods=-3)["close"]) < downTreshold,
+        ((1 / df["trend_sma_fast"]) * ((df.shift(periods=-1)["trend_sma_fast"] + df.shift(periods=-2)["trend_sma_fast"])/2) > upTreshold),
+        ((1 / df["trend_sma_fast"]) * ((df.shift(periods=-1)["trend_sma_fast"] + df.shift(periods=-2)["trend_sma_fast"])/2) < downTreshold),
     ]
-    choices = [1, -1]
-    df["target"] = np.select(conditions, choices, default=0)
+    choices = [2,0]
+    df["target"] = np.select(conditions, choices, default=1)
     return df
 
 

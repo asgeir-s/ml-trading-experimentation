@@ -40,7 +40,7 @@ def simulateTrades(signals: pd.DataFrame, startCash: int):
         signal = row["signal"]
         tradePrice = row["trade price"]
 
-        if status == "LONG" and (1 / openPrice * tradePrice) < 0.92:
+        if status == "LONG" and ((1 / openPrice) * (tradePrice-openPrice)) < 0.02:
             signal = "SELL"
 
         if status == "NONE" and signal == "BUY":
@@ -102,7 +102,7 @@ allCandlesticsAndFeaturesWithTarget: pd.DataFrame = pd.read_csv(
     "./data/candlesticsAndFeaturesWithTarget.csv"
 )
 
-startPosition = 14000
+startPosition = 17000
 # take first 1000 into training set
 firstPart = allCandlesticsAndFeaturesWithTarget.iloc[0:startPosition]
 
