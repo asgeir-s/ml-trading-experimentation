@@ -98,11 +98,6 @@ def benchSetupAndTrainModel(X_train, y_train, X_test, y_test):
     return xg_reg
 
 
-def continueTraining(model, X_train, y_train):
-    model.fit(X_train, y_train)
-    return model
-
-
 def evaluate(xg_reg, X_test, y_test):
     preds = xg_reg.predict(X_test)
 

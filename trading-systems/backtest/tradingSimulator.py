@@ -2,17 +2,6 @@ import pandas as pd
 from tradingSystem import prepearModel, generateSignal, fitNewData
 
 
-def createHistoryAndTestPeriodes(
-    testSetSize: int, data: pd.DataFrame
-) -> (pd.DataFrame, pd.DataFrame):
-    """
-    Devides the history data into a testperiod and history.
-    """
-    testPeriode = data.tail(testSetSize)
-    history = data.drop(data.tail(testSetSize).index)
-    return testPeriode, history
-
-
 def simulateTrades(signals: pd.DataFrame, startCash: int):
     trades = pd.DataFrame(
         columns=[
