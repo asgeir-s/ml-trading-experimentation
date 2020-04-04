@@ -18,14 +18,19 @@ class Model(abc.ABC):
     def evaluate(self, testSetFeatures: pd.DataFrame, testSetTarget: pd.Series) -> None:
         """Evaluate"""
 
+    
+    @abc.abstractmethod
+    def print_info(self) -> None:
+        """Print or plot information about the current model."""
+
     @staticmethod
     @abc.abstractmethod
-    def generateFeatures(df: pd.DataFrame) -> pd.DataFrame:
+    def generate_features(df: pd.DataFrame) -> pd.DataFrame:
         """Given a dataframe with the candlestick data, it generate and return a
         data frame containing the features."""
 
     @staticmethod
     @abc.abstractmethod
-    def generateTarget(df: pd.DataFrame) -> pd.Series:
+    def generate_target(df: pd.DataFrame) -> pd.Series:
         """Given a dataframe with the correct features, it return a series
         with the same indexes containing the target."""

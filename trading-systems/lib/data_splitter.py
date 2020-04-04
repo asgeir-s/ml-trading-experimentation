@@ -2,22 +2,22 @@ import pandas as pd
 from typing import List
 
 
-def generteTrainAndTestSet(
-    features: pd.DataFrame, target: pd.Series, percentage: int, featuresColumnsToDrop: List[str]
+def split_features_and_target_into_train_and_test_set(
+    features: pd.DataFrame, target: pd.Series, percentage: int, features_columns_to_drop: List[str]
 ):
     """
     Splitting the data into a test set and a training set.
     Set percentage to 0 for putting all data into the training set.
     """
-    testSetSize = int(len(features) * (percentage / 100))
-    trainingSetSize = int(len(features) - testSetSize)
+    test_set_size = int(len(features) * (percentage / 100))
+    training_set_size = int(len(features) - test_set_size)
 
-    features = features.drop(columns=featuresColumnsToDrop)
+    features = features.drop(columns=features_columns_to_drop)
 
-    trainingSetFeatures = features.iloc[:trainingSetSize]
-    trainingSetTarget = target[:trainingSetSize]
+    training_set_features = features.iloc[:training_set_size]
+    training_set_target = target[:training_set_size]
 
-    testSetFeatures = features.iloc[trainingSetSize : len(features)]
-    testSetTarget = target[trainingSetSize : len(features)]
+    test_set_features = features.iloc[training_set_size : len(features)]
+    test_set_target = target[training_set_size : len(features)]
 
-    return trainingSetFeatures, trainingSetTarget, testSetFeatures, testSetTarget
+    return training_set_features, training_set_target, test_set_features, test_set_target

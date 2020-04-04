@@ -1,10 +1,13 @@
 import xgboost as xgb
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from lib.model import Model
 from features.bukosabino_ta import default_features
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection._validation import cross_val_score
 
 
 @dataclass
@@ -27,20 +30,35 @@ class XgboostNovice(Model):
     def predict(self, df: pd.DataFrame):
         return 1
 
-    def evaluate(self, testSetFeatures: pd.DataFrame, testSetTarget: pd.Series):
-        preds = self.model.predict(testSetFeatures)
+    def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
+        predictions = self.model.predict(test_set_features)
 
-        rmse = np.sqrt(mean_squared_error(testSetTarget, preds))
+        rmse = np.sqrt(mean_squared_error(test_set_target, predictions))
         print("RMSE: %f" % (rmse))
 
+
+        # evaluate predictions
+        accuracy = accuracy_score(test_set_target, predictions)
+        print("accuracy: %.2f%%" % (accuracy * 100.0))
+
+        ## retrieve performance metrics
+        kfold = StratifiedKFold(n_splits=10)
+        results = cross_val_score(self.model, test_set_features, test_set_target, cv=kfold)
+        print("kfold Accuracy: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
+
+    def print_info(self) -> None:
+        xgb.plot_importance(self.model)
+        plt.rcParams["figure.figsize"] = [5, 5]
+        plt.show()
+
     @staticmethod
-    def generateFeatures(df: pd.DataFrame):
+    def generate_features(df: pd.DataFrame):
         return default_features.createFeatures(df)
 
     @staticmethod
-    def generateTarget(df: pd.DataFrame):
-        upTreshold = 1.003
-        downTreshold = 0.998
+    def generate_target(df: pd.DataFrame):
+        up_treshold = 1.003
+        down_treshold = 0.998
         conditions = [
             (
                 (1 / df["trend_sma_fast"])
@@ -51,7 +69,7 @@ class XgboostNovice(Model):
                     )
                     / 2
                 )
-                > upTreshold
+                > up_treshold
             ),
             (
                 (1 / df["trend_sma_fast"])
@@ -62,7 +80,7 @@ class XgboostNovice(Model):
                     )
                     / 2
                 )
-                < downTreshold
+                < down_treshold
             ),
         ]
         choices = [2, 0]
