@@ -3,7 +3,7 @@ from typing import List
 
 
 def split_features_and_target_into_train_and_test_set(
-    features: pd.DataFrame, target: pd.Series, percentage: int, features_columns_to_drop: List[str]
+    features: pd.DataFrame, target: pd.Series, percentage: int
 ):
     """
     Splitting the data into a test set and a training set.
@@ -11,8 +11,6 @@ def split_features_and_target_into_train_and_test_set(
     """
     test_set_size = int(len(features) * (percentage / 100))
     training_set_size = int(len(features) - test_set_size)
-
-    features = features.drop(columns=features_columns_to_drop)
 
     training_set_features = features.iloc[:training_set_size]
     training_set_target = target[:training_set_size]

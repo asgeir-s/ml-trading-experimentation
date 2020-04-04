@@ -28,7 +28,8 @@ class XgboostNovice(Model):
         self.model.fit(features, target)
 
     def predict(self, df: pd.DataFrame):
-        return 1
+        prediction = self.model.predict(df.tail(0)).values[0]
+        return prediction
 
     def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
         predictions = self.model.predict(test_set_features)
@@ -53,7 +54,7 @@ class XgboostNovice(Model):
 
     @staticmethod
     def generate_features(df: pd.DataFrame):
-        return default_features.createFeatures(df)
+        return default_features.createFeatures(df.drop(columns=["open time", "close time"]))
 
     @staticmethod
     def generate_target(df: pd.DataFrame):
