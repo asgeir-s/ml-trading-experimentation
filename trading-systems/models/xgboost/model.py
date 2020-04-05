@@ -28,7 +28,7 @@ class XgboostNovice(Model):
         self.model.fit(features, target)
 
     def predict(self, df: pd.DataFrame):
-        prediction = self.model.predict(df.tail(0)).values[0]
+        prediction = self.model.predict(df.tail(1))[0]
         return prediction
 
     def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
