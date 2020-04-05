@@ -14,15 +14,14 @@ from sklearn.model_selection._validation import cross_val_score
 class XgboostNovice(Model):
 
     model: xgb.XGBRegressor = xgb.XGBRegressor(
-            objective="multi:softmax",
-            colsample_bytree=0.3,
-            learning_rate=1,
-            max_depth=12,
-            alpha=5,
-            n_estimators=10,
-            num_class=3,
-        )
-
+        objective="multi:softmax",
+        colsample_bytree=0.3,
+        learning_rate=1,
+        max_depth=12,
+        alpha=5,
+        n_estimators=10,
+        num_class=3,
+    )
 
     def train(self, features: pd.DataFrame, target: pd.Series):
         self.model.fit(features, target)
@@ -37,7 +36,6 @@ class XgboostNovice(Model):
         rmse = np.sqrt(mean_squared_error(test_set_target, predictions))
         print("RMSE: %f" % (rmse))
 
-
         # evaluate predictions
         accuracy = accuracy_score(test_set_target, predictions)
         print("accuracy: %.2f%%" % (accuracy * 100.0))
@@ -45,7 +43,7 @@ class XgboostNovice(Model):
         ## retrieve performance metrics
         kfold = StratifiedKFold(n_splits=10)
         results = cross_val_score(self.model, test_set_features, test_set_target, cv=kfold)
-        print("kfold Accuracy: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
+        print("kfold Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
 
     def print_info(self) -> None:
         xgb.plot_importance(self.model)
@@ -58,31 +56,11 @@ class XgboostNovice(Model):
 
     @staticmethod
     def generate_target(df: pd.DataFrame):
-        up_treshold = 1.003
-        down_treshold = 0.998
+        up_treshold = 1
+        down_treshold = 1
         conditions = [
-            (
-                (1 / df["trend_sma_fast"])
-                * (
-                    (
-                        df.shift(periods=-1)["trend_sma_fast"]
-                        + df.shift(periods=-2)["trend_sma_fast"]
-                    )
-                    / 2
-                )
-                > up_treshold
-            ),
-            (
-                (1 / df["trend_sma_fast"])
-                * (
-                    (
-                        df.shift(periods=-1)["trend_sma_fast"]
-                        + df.shift(periods=-2)["trend_sma_fast"]
-                    )
-                    / 2
-                )
-                < down_treshold
-            ),
+            (df.shift(periods=-2)["open"] / df.shift(periods=-1)["open"] > up_treshold),
+            (df.shift(periods=-2)["open"] / df.shift(periods=1)["open"] < down_treshold),
         ]
         choices = [2, 0]
         return pd.Series(np.select(conditions, choices, default=1))

@@ -24,4 +24,7 @@ then:
 
 ### Evaluate a model
 
-### 
+### Test if target is a good target
+1. Create target
+2. trade target directly.
+3. Then we know if its a good target

@@ -9,8 +9,10 @@ def main():
     trade_start_position = 10000
     trade_end_position = 12000
     features = First.generate_features(candlesticks)
+    targets = First._generate_target(features)
 
-    signals = Backtest.run(First, features, candlesticks, trade_start_position, trade_end_position)
+    # signals = Backtest.run(First, features, candlesticks, trade_start_position, trade_end_position)
+    signals = Backtest._runWithTarget(First, features, targets ,candlesticks, trade_start_position, trade_end_position)
     signals.to_csv("strategies/first/tmp/signals.csv")
 
     start_money = 1000
