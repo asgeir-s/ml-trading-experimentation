@@ -77,10 +77,8 @@ class Backtest:
                     signal = strategy.on_shorter_candlestick(last_candlestick, signals)
 
                     if signal is not None:
-                        trade_price = last_candlestick["close"].values[
-                            0
-                        ]  # TODO: this should really be the open price of the next candle (but it will return index out of bound)
-                        time = pd.to_datetime(last_candlestick["close time"], unit="ms").values[0]
+                        trade_price = last_candlestick["close"]  # TODO: this should really be the open price of the next candle (but it will return index out of bound)
+                        time = pd.to_datetime(last_candlestick["close time"], unit="ms")
                         signals = signals.append(
                             {"time": time, "signal": signal, "price": trade_price},
                             ignore_index=True,

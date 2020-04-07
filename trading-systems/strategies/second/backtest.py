@@ -8,7 +8,7 @@ def main():
     candlesticks = load_candlesticks("1h")
     shorter_candlesticks = load_candlesticks("1m")
 
-    trade_start_position = 18000
+    trade_start_position = 18400
     trade_end_position = len(candlesticks)
     features = Second.generate_features(candlesticks)
     targets = Second._generate_target(features)

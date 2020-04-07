@@ -51,7 +51,7 @@ class Second(Strategy):
         if (
             last_signal is not None
             and last_signal["signal"].values[0] == TradingSignal.BUY
-            and last_candlestick["close"] * 1.01 < last_signal["price"]
+            and last_candlestick["close"] * 1.01 < last_signal["price"].values[0]
         ):
             return TradingSignal.SELL
 
