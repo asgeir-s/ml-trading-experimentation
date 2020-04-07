@@ -2,6 +2,7 @@ import pandas as pd
 from lib.strategy import Strategy
 from functools import reduce
 from lib.tradingSignal import TradingSignal
+from typing import Union
 
 
 class Backtest:
@@ -13,21 +14,41 @@ class Backtest:
         start_position: int,
         end_position: int,
     ) -> pd.DataFrame:
+        return Backtest._runWithTarget(
+            TradingStrategy, features, None, candlesticks, start_position, end_position
+        )
+
+    @staticmethod
+    def _runWithTarget(
+        TradingStrategy: Strategy,
+        features: pd.DataFrame,
+        target: Union[pd.DataFrame, None],
+        candlesticks: pd.DataFrame,
+        start_position: int,
+        end_position: int,
+    ) -> pd.DataFrame:
+        """Test trading the target, without prediction. To check if the target is good."""
         init_features = features.iloc[:start_position]
         strategy = TradingStrategy(init_features)
 
         signals = pd.DataFrame(columns=["time", "signal", "price"])
         for position in range(start_position, end_position):
             period_features = features.iloc[:position]
-            signal = strategy.execute_with_features(period_features, signals)
+            signal = (
+                strategy._execute(
+                    period_features, signals, [target.iloc[:position].tail(1).values[0]]
+                )
+                if target is not None
+                else strategy.execute_with_features(period_features, signals)
+            )
             if signal in (TradingSignal.BUY, TradingSignal.SELL):
                 period_candlesticks = candlesticks.iloc[:position]
-                trade_price = features.iloc[:position + 1].tail(1)["open"].values[0]
+                trade_price = features.iloc[: position + 1].tail(1)["open"].values[0]
                 time = pd.to_datetime(period_candlesticks["close time"].tail(1), unit="ms").values[
                     0
                 ]
                 signals = signals.append(
-                    {"time": time, "signal": signal, "price": trade_price,}, ignore_index=True,
+                    {"time": time, "signal": signal, "price": trade_price}, ignore_index=True,
                 )
             if position % 100 == 0:
                 print(
@@ -41,7 +62,6 @@ class Backtest:
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
-        start_money: int,
     ) -> pd.DataFrame:
         candlesticks_periode = candlesticks.iloc[start_position:end_position]
         start_time = pd.to_datetime(candlesticks_periode["open time"].head(1), unit="ms").values[0]
@@ -65,7 +85,7 @@ class Backtest:
         )
 
         holding = 0
-        money = start_money
+        money = start_price
         open_time = 0
         open_price = 0
         open_money = 0
@@ -101,7 +121,9 @@ class Backtest:
                     ignore_index=True,
                 )
 
+        start_money = trades["open money"].head(1).values[0]
         end_money = trades["close money"].tail(1).values[0]
+
         print(f"Starts with {start_money}$ at {start_time}")
         print(f"Ends with {end_money}$ (number of trades: {len(signals)}) at {end_time}")
         print(
@@ -110,36 +132,3 @@ class Backtest:
         print(f"Percentage price change in period: {round(percentage_price_change_in_period,2)}%")
 
         return trades
-
-    @staticmethod
-    def _runWithTarget(
-        TradingStrategy: Strategy,
-        features: pd.DataFrame,
-        target: pd.DataFrame,
-        candlesticks: pd.DataFrame,
-        start_position: int,
-        end_position: int,
-    ) -> pd.DataFrame:
-        """Test trading the target, without prediction. To check if the target is good."""
-        init_features = features.iloc[:start_position]
-        strategy = TradingStrategy(init_features)
-
-        signals = pd.DataFrame(columns=["time", "signal", "price"])
-        for position in range(start_position, end_position):
-            period_features = features.iloc[:position]
-            prediction = target.iloc[:position].tail(1).values[0]
-            signal = strategy._execute(period_features, signals, [prediction])
-            if signal in (TradingSignal.BUY, TradingSignal.SELL):
-                period_candlesticks = candlesticks.iloc[:position]
-                trade_price = features.iloc[:position+1].tail(1)["open"].values[0]
-                time = pd.to_datetime(period_candlesticks["close time"].tail(1), unit="ms").values[
-                    0
-                ]
-                signals = signals.append(
-                    {"time": time, "signal": signal, "price": trade_price}, ignore_index=True,
-                )
-            if position % 100 == 0:
-                print(
-                    f"Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(signals)}"
-                )
-        return signals

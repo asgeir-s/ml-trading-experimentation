@@ -86,7 +86,7 @@ class TestStrategy(Strategy):
         return pd.Series(np.select(conditions, choices, default=0))
 
 
-def test_answer():
+def test_backtest():
     features = TestStrategy.generate_features(candlesticks)
     targets = TestStrategy._generate_target(features)
 
@@ -101,7 +101,7 @@ def test_answer():
 
     assert len(signals) == 4, "there should be 4 signals"
 
-    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position, 1000)
+    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position)
 
     print(trades)
 

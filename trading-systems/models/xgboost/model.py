@@ -38,7 +38,7 @@ class XgboostNovice(Model):
 
         # evaluate predictions
         accuracy = accuracy_score(test_set_target, predictions)
-        print("accuracy: %.2f%%" % (accuracy * 100.0))
+        print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
         ## retrieve performance metrics
         kfold = StratifiedKFold(n_splits=10)
@@ -56,7 +56,7 @@ class XgboostNovice(Model):
 
     @staticmethod
     def generate_target(df: pd.DataFrame):
-        up_treshold = 1
+        up_treshold = 1.02
         down_treshold = 1
         conditions = [
             (df.shift(periods=-2)["open"] / df.shift(periods=-1)["open"] > up_treshold),
