@@ -11,7 +11,7 @@ from sklearn.model_selection._validation import cross_val_score
 
 
 @dataclass
-class XgboostNovice(Model):
+class XgboostBaseModel(Model):
 
     model: xgb.XGBRegressor = xgb.XGBRegressor(
         objective="multi:softmax",

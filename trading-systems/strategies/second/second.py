@@ -2,7 +2,7 @@ from lib.strategy import Strategy
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
 from dataclasses import InitVar
-from models.xgboost.model import XgboostBaseModel
+from models.xgboost.model_2.model_2 import XgboostModel2
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
 import abc
@@ -10,13 +10,13 @@ from typing import List
 
 
 @dataclass
-class First(Strategy):
+class Second(Strategy):
 
     init_candlesticks: InitVar[pd.DataFrame]
-    xgboost_novice: XgboostBaseModel = None
+    xgboost_novice: XgboostModel2 = None
 
     def __post_init__(self, init_features: pd.DataFrame) -> None:
-        self.xgboost_novice = XgboostBaseModel()
+        self.xgboost_novice = XgboostModel2()
         self.__train(init_features)
 
     def execute(self, candlesticks: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
@@ -25,9 +25,9 @@ class First(Strategy):
 
     def execute_with_features(self, features: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
         if len(features) % 100 == 0:
-            print("First Strategy - Start retraining.")
+            print("Second Strategy - Start retraining.")
             self.__train(features)
-            print("First Strategy - End retraining.")
+            print("Second Strategy - End retraining.")
 
         prediction = self.xgboost_novice.predict(features)
         return self._execute(features, signals, [prediction])
@@ -45,7 +45,7 @@ class First(Strategy):
     @staticmethod
     def generate_features(candlesticks: pd.DataFrame) -> pd.DataFrame:
         """Should return a dataframe containing all features needed by this strategy (for all its models etc)"""
-        XgboostBaseModelFeatures = XgboostBaseModel.generate_features(candlesticks)
+        XgboostBaseModelFeatures = XgboostModel2.generate_features(candlesticks)
         return XgboostBaseModelFeatures
 
     def __train(self, features: pd.DataFrame):
@@ -61,4 +61,4 @@ class First(Strategy):
 
     @staticmethod
     def _generate_target(features: pd.DataFrame) -> pd.DataFrame:
-        return XgboostBaseModel.generate_target(features)
+        return XgboostModel2.generate_target(features)

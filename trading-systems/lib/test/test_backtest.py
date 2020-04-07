@@ -4,7 +4,7 @@ import numpy as np
 from lib.strategy import Strategy
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
 from dataclasses import InitVar
-from models.xgboost.model import XgboostNovice
+from models.xgboost.model import XgboostBaseModel
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
 import abc

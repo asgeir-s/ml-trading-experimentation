@@ -1,4 +1,4 @@
-from strategies.first.first import First
+from strategies.second.second import Second
 from lib.data_loader import load_candlesticks
 from lib.backtest import Backtest
 from lib.charting import chartTrades
@@ -7,12 +7,12 @@ from lib.charting import chartTrades
 def main():
     candlesticks = load_candlesticks("1h")
 
-    trade_start_position = 10000
-    trade_end_position = len(candlesticks)
-    features = First.generate_features(candlesticks)
-    targets = First._generate_target(features)
+    trade_start_position = 11000
+    trade_end_position = 12000 # len(candlesticks)
+    features = Second.generate_features(candlesticks)
+    targets = Second._generate_target(features)
 
-    signals = Backtest.run(First, features, candlesticks, trade_start_position, trade_end_position)
+    signals = Backtest.run(Second, features, candlesticks, trade_start_position, trade_end_position)
     # signals = Backtest._runWithTarget(First, features, targets ,candlesticks, trade_start_position, trade_end_position)
     signals.to_csv("strategies/first/tmp/signals.csv")
 
