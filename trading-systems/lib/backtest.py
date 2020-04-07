@@ -2,7 +2,7 @@ import pandas as pd
 from lib.strategy import Strategy
 from functools import reduce
 from lib.tradingSignal import TradingSignal
-from typing import Union
+from typing import Optional
 
 
 class Backtest:
@@ -11,19 +11,27 @@ class Backtest:
         TradingStrategy: Strategy,
         features: pd.DataFrame,
         candlesticks: pd.DataFrame,
+        shorter_candlesticks: Optional[pd.DataFrame],
         start_position: int,
         end_position: int,
     ) -> pd.DataFrame:
         return Backtest._runWithTarget(
-            TradingStrategy, features, None, candlesticks, start_position, end_position
+            TradingStrategy=TradingStrategy,
+            features=features,
+            target=None,
+            candlesticks=candlesticks,
+            shorter_candlesticks=shorter_candlesticks,
+            start_position=start_position,
+            end_position=end_position,
         )
 
     @staticmethod
     def _runWithTarget(
         TradingStrategy: Strategy,
         features: pd.DataFrame,
-        target: Union[pd.DataFrame, None],
+        target: Optional[pd.DataFrame],
         candlesticks: pd.DataFrame,
+        shorter_candlesticks: Optional[pd.DataFrame],
         start_position: int,
         end_position: int,
     ) -> pd.DataFrame:
@@ -35,11 +43,11 @@ class Backtest:
         for position in range(start_position, end_position):
             period_features = features.iloc[:position]
             signal = (
-                strategy._execute(
+                strategy.on_candlestick_with_features_and_perdictions(
                     period_features, signals, [target.iloc[:position].tail(1).values[0]]
                 )
                 if target is not None
-                else strategy.execute_with_features(period_features, signals)
+                else strategy.on_candlestick_with_features(period_features, signals)
             )
             if signal in (TradingSignal.BUY, TradingSignal.SELL):
                 period_candlesticks = candlesticks.iloc[:position]
@@ -50,6 +58,34 @@ class Backtest:
                 signals = signals.append(
                     {"time": time, "signal": signal, "price": trade_price}, ignore_index=True,
                 )
+
+            if shorter_candlesticks is not None and hasattr(strategy, "on_shorter_candlestick"):
+                next_period_candlesticks = candlesticks.iloc[: position + 1]
+                shorter_candlesticks_in_next_period = shorter_candlesticks[
+                    (
+                        shorter_candlesticks["open time"]
+                        > next_period_candlesticks.iloc[:position].tail(1)["close time"].values[0]
+                    )
+                    & (
+                        shorter_candlesticks["close time"]
+                        < next_period_candlesticks.iloc[: position + 1]
+                        .tail(1)["close time"]
+                        .values[0]
+                    )
+                ]
+                for index, last_candlestick in shorter_candlesticks_in_next_period.iterrows():
+                    signal = strategy.on_shorter_candlestick(last_candlestick, signals)
+
+                    if signal is not None:
+                        trade_price = last_candlestick["close"].values[
+                            0
+                        ]  # TODO: this should really be the open price of the next candle (but it will return index out of bound)
+                        time = pd.to_datetime(last_candlestick["close time"], unit="ms").values[0]
+                        signals = signals.append(
+                            {"time": time, "signal": signal, "price": trade_price},
+                            ignore_index=True,
+                        )
+
             if position % 100 == 0:
                 print(
                     f"Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(signals)}"
@@ -58,10 +94,7 @@ class Backtest:
 
     @staticmethod
     def evaluate(
-        signals: pd.DataFrame,
-        candlesticks: pd.DataFrame,
-        start_position: int,
-        end_position: int,
+        signals: pd.DataFrame, candlesticks: pd.DataFrame, start_position: int, end_position: int,
     ) -> pd.DataFrame:
         candlesticks_periode = candlesticks.iloc[start_position:end_position]
         start_time = pd.to_datetime(candlesticks_periode["open time"].head(1), unit="ms").values[0]

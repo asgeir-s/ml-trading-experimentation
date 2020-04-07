@@ -11,10 +11,10 @@ class XgboostModel2(XgboostBaseModel):
     model: xgb.XGBRegressor = xgb.XGBRegressor(
         objective="multi:softmax",
         colsample_bytree=0.3,
-        learning_rate=1,
+        learning_rate=0.1,
         max_depth=12,
-        alpha=5,
-        n_estimators=10,
+        alpha=10,
+        n_estimators=20,
         num_class=3,
     )
 
@@ -24,11 +24,12 @@ class XgboostModel2(XgboostBaseModel):
 
     @staticmethod
     def generate_target(df: pd.DataFrame):
-        up_treshold = 1.02
-        down_treshold = 1
+        up_treshold = 1.003
+        down_treshold = 1.0001
         conditions = [
-            (df.shift(periods=-2)["open"] / df.shift(periods=-1)["open"] > up_treshold),
-            (df.shift(periods=-2)["open"] / df.shift(periods=1)["open"] < down_treshold),
+            (df.shift(periods=-2)["trend_sma_fast"] / df.shift(periods=-1)["trend_sma_fast"] > up_treshold),
+            (df.shift(periods=-2)["trend_sma_fast"] / df.shift(periods=-1)["trend_sma_fast"] < down_treshold),
+            (df.shift(periods=-2)["open"] / df.shift(periods=-1)["open"] < 0.98),
         ]
-        choices = [2, 0]
+        choices = [2, 0, 0]
         return pd.Series(np.select(conditions, choices, default=1))

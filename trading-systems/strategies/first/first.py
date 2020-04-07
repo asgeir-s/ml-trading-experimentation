@@ -6,7 +6,7 @@ from models.xgboost.model import XgboostBaseModel
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
 import abc
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -19,21 +19,23 @@ class First(Strategy):
         self.xgboost_novice = XgboostBaseModel()
         self.__train(init_features)
 
-    def execute(self, candlesticks: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
-        features = self.generate_features(candlesticks)
-        return self.execute_with_features(features, signals)
-
-    def execute_with_features(self, features: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
+    def on_candlestick_with_features(
+        self, features: pd.DataFrame, signals: pd.DataFrame
+    ) -> TradingSignal:
         if len(features) % 100 == 0:
             print("First Strategy - Start retraining.")
             self.__train(features)
             print("First Strategy - End retraining.")
 
         prediction = self.xgboost_novice.predict(features)
-        return self._execute(features, signals, [prediction])
+        return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
 
-    def _execute(self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]) -> TradingSignal:
-        last_signal = TradingSignal.SELL if len(signals) == 0 else signals.tail(1)["signal"].values[0]
+    def on_candlestick_with_features_and_perdictions(
+        self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
+    ) -> TradingSignal:
+        last_signal = (
+            TradingSignal.SELL if len(signals) == 0 else signals.tail(1)["signal"].values[0]
+        )
         prediction = predictions[0]
 
         if last_signal == TradingSignal.SELL and prediction > 1.5:

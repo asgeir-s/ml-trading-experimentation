@@ -12,14 +12,35 @@ def main():
     features = First.generate_features(candlesticks)
     targets = First._generate_target(features)
 
-    signals = Backtest.run(First, features, candlesticks, trade_start_position, trade_end_position)
-    # signals = Backtest._runWithTarget(First, features, targets ,candlesticks, trade_start_position, trade_end_position)
+#    signals = Backtest.run(
+#        TradingStrategy=First,
+#        features=features,
+#        candlesticks=candlesticks,
+#        shorter_candlesticks=None,
+#        start_position=trade_start_position,
+#        end_position=trade_end_position,
+#    )
+    signals = Backtest._runWithTarget(
+        TradingStrategy=First,
+        features=features,
+        target=targets,
+        candlesticks=candlesticks,
+        shorter_candlesticks=None,
+        start_position=trade_start_position,
+        end_position=trade_end_position,
+    )
     signals.to_csv("strategies/first/tmp/signals.csv")
 
     trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position)
     trades.to_csv("strategies/first/tmp/trades.csv")
 
-    chartTrades(trades, candlesticks, trade_start_position, trade_end_position, "strategies/first/tmp/chart.html")
+    chartTrades(
+        trades,
+        candlesticks,
+        trade_start_position,
+        trade_end_position,
+        "strategies/first/tmp/chart.html",
+    )
 
 
 if __name__ == "__main__":

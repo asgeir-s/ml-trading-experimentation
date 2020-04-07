@@ -47,15 +47,15 @@ class TestStrategy(Strategy):
     def __post_init__(self, init_features: pd.DataFrame) -> None:
         pass
 
-    def execute(self, candlesticks: pd.DataFrame, trades: pd.DataFrame) -> TradingSignal:
+    def on_candlestick(self, candlesticks: pd.DataFrame, trades: pd.DataFrame) -> TradingSignal:
         features = self.generate_features(candlesticks)
-        return self.execute_with_features(features, trades)
+        return self.on_candlestick_with_features(features, trades)
 
-    def execute_with_features(self, features: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
+    def on_candlestick_with_features(self, features: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
         prediction = 1 if features.tail(1)["close"].values[0] > 100 else -1 if features.tail(1)["close"].values[0] < 100 else 0
-        return self._execute(features, signals, [prediction])
+        return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
 
-    def _execute(
+    def on_candlestick_with_features_and_perdictions(
         self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
     ) -> TradingSignal:
         print(predictions)
