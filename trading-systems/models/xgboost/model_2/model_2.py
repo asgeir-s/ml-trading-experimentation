@@ -25,7 +25,7 @@ class XgboostModel2(XgboostBaseModel):
     @staticmethod
     def generate_target(df: pd.DataFrame):
         up_treshold = 1.003
-        down_treshold = 1.0001
+        down_treshold = 1.001
         conditions = [
             (df.shift(periods=-2)["trend_sma_fast"] / df.shift(periods=-1)["trend_sma_fast"] > up_treshold),
             (df.shift(periods=-2)["trend_sma_fast"] / df.shift(periods=-1)["trend_sma_fast"] < down_treshold),

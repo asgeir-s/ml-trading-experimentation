@@ -18,7 +18,6 @@ class Model(abc.ABC):
     def evaluate(self, testSetFeatures: pd.DataFrame, testSetTarget: pd.Series) -> None:
         """Evaluate"""
 
-    
     @abc.abstractmethod
     def print_info(self) -> None:
         """Print or plot information about the current model."""

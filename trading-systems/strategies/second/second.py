@@ -12,7 +12,7 @@ from typing import List, Optional
 @dataclass
 class Second(Strategy):
 
-    init_candlesticks: InitVar[pd.DataFrame]
+    init_features: InitVar[pd.DataFrame] = None
     xgboost_novice: XgboostModel2 = None
 
     def __post_init__(self, init_features: pd.DataFrame) -> None:
@@ -20,7 +20,7 @@ class Second(Strategy):
         self.__train(init_features)
 
     def on_candlestick_with_features(
-        self, features: pd.DataFrame, signals: pd.DataFrame
+        self, features: pd.DataFrame, trades: pd.DataFrame
     ) -> TradingSignal:
         if len(features) % 100 == 0:
             print("Second Strategy - Start retraining.")
@@ -28,31 +28,22 @@ class Second(Strategy):
             print("Second Strategy - End retraining.")
 
         prediction = self.xgboost_novice.predict(features)
-        return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
+        return self.on_candlestick_with_features_and_perdictions(features, trades, [prediction])
 
     def on_candlestick_with_features_and_perdictions(
-        self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
+        self, features: pd.DataFrame, trades: pd.DataFrame, predictions: List[float]
     ) -> TradingSignal:
-        last_signal = (
-            TradingSignal.SELL if len(signals) == 0 else signals.tail(1)["signal"].values[0]
-        )
+        last_time, last_signal, last_price = self.get_last_trade(trades)
+        if last_signal is None:
+            last_signal = TradingSignal.SELL
+        
         prediction = predictions[0]
 
         if last_signal == TradingSignal.SELL and prediction > 1.5:
+            current_price = features.tail(1)["close"].values[0]
+            self.stop_loss = current_price * 0.95
             return TradingSignal.BUY
         elif last_signal == TradingSignal.BUY and prediction < 0.5:
-            return TradingSignal.SELL
-
-    def on_shorter_candlestick(
-        self, last_candlestick: pd.Series, signals: pd.DataFrame
-    ) -> Optional[TradingSignal]:
-        last_signal = None if len(signals) == 0 else signals.tail(1)
-
-        if (
-            last_signal is not None
-            and last_signal["signal"].values[0] == TradingSignal.BUY
-            and last_candlestick["close"] * 1.01 < last_signal["price"].values[0]
-        ):
             return TradingSignal.SELL
 
     @staticmethod
