@@ -27,10 +27,16 @@ class Strategy(abc.ABC):
     def on_candlestick_with_features_and_perdictions(
         self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
     ) -> TradingSignal:
-        """(mostly) Internal method for calling with the features and the predictions. 
-        Can be used from outside for testing targets."""
+        """
+        (mostly) Internal method for calling with the features and the predictions. 
+        Can be used from outside for testing targets.
+        """
 
     def on_tick(self, price: float, last_signal: TradingSignal) -> Optional[TradingSignal]:
+        """
+        Checks if the stoploss should be executed. Should be called on every tick in live mode. 
+        Be carful overriding this as it will not be possible to backtest when it is changed.
+        """
         if (
             self.stop_loss is not None
             and last_signal == TradingSignal.BUY
@@ -39,21 +45,30 @@ class Strategy(abc.ABC):
             return TradingSignal.SELL
 
     def need_ticks(self, last_signal: TradingSignal):
-        """This should be overwritten with a function returning false is a stoploss or trailing stoploss is not used."""
+        """
+        This should be overwritten with a function returning false is a stoploss or trailing stoploss is not used.
+        This is used for optimizing the backtest.
+        """
         return last_signal == TradingSignal.BUY and self.stop_loss
 
     @staticmethod
     @abc.abstractmethod
     def generate_features(candlesticks: pd.DataFrame) -> pd.DataFrame:
-        """Should return a dataframe containing all features needed by this strategy (for all its models etc.)"""
+        """
+        Should return a dataframe containing all features needed by this strategy (for all its models etc.).
+        """
 
     def __train(self, features: pd.DataFrame):
-        """Train all models etc. that needs training."""
+        """
+        Train all models etc. that needs training.
+        """
 
     @staticmethod
     @abc.abstractmethod
     def _generate_target(features: pd.DataFrame) -> pd.DataFrame:
-        """Internal method used genrate features for models used by the strategy. Can be used fro outside for testing target."""
+        """
+        Internal method used genrate features for models used by the strategy. Can be used fro outside for backtesting (raw) target (CHEATING).
+        """
 
     @staticmethod
     def get_last_trade(

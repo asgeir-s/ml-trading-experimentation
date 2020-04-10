@@ -7,7 +7,7 @@ from lib.charting import chartTrades
 def main():
     candlesticks = load_candlesticks("1h")
 
-    trade_start_position = 10000
+    trade_start_position = 18000
     trade_end_position = len(candlesticks)
     features = Second.generate_features(candlesticks)
     targets = Second._generate_target(features)
@@ -20,8 +20,6 @@ def main():
         candlesticks=candlesticks,
         start_position=trade_start_position,
         end_position=trade_end_position,
-        cash=10000,
-        commission=0.002,
     )
     # signals = Backtest._runWithTarget(
     #    TradingStrategy=Second,
@@ -30,12 +28,10 @@ def main():
     #    candlesticks=candlesticks,
     #    start_position=trade_start_position,
     #    end_position=trade_end_position,
-    #    cash=10000,
-    #    commission=0.002,
     # )
     signals.to_csv("strategies/second/tmp/signals.csv")
 
-    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position)
+    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position, 0.001)
     trades.to_csv("strategies/second/tmp/trades.csv")
 
     chartTrades(
@@ -49,3 +45,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+fee

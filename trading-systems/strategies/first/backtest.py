@@ -31,7 +31,7 @@ def main():
     )
     signals.to_csv("strategies/first/tmp/signals.csv")
 
-    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position)
+    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position, 0.001)
     trades.to_csv("strategies/first/tmp/trades.csv")
 
     chartTrades(
@@ -45,3 +45,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+fee

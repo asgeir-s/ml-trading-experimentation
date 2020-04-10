@@ -13,8 +13,6 @@ class Backtest:
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
-        cash: float,
-        commission: float,
     ) -> pd.DataFrame:
         return Backtest._runWithTarget(
             TradingStrategy=TradingStrategy,
@@ -23,8 +21,6 @@ class Backtest:
             candlesticks=candlesticks,
             start_position=start_position,
             end_position=end_position,
-            cash=cash,
-            commission=commission,
         )
 
     @staticmethod
@@ -35,8 +31,6 @@ class Backtest:
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
-        cash: float,
-        commission: float,
     ) -> pd.DataFrame:
         """Test trading the target, without prediction. To check if the target is good."""
         init_features = features.iloc[:start_position]
@@ -72,7 +66,9 @@ class Backtest:
                         signal = strategy.on_tick(imagened_trade_price, signal)
 
                         if signal is not None:
-                            print(f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}")
+                            print(
+                                f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
+                            )
                             trades = trades.append(
                                 {"time": time, "signal": signal, "price": trade_price},
                                 ignore_index=True,
@@ -85,7 +81,11 @@ class Backtest:
 
     @staticmethod
     def evaluate(
-        signals: pd.DataFrame, candlesticks: pd.DataFrame, start_position: int, end_position: int,
+        signals: pd.DataFrame,
+        candlesticks: pd.DataFrame,
+        start_position: int,
+        end_position: int,
+        fee: float,
     ) -> pd.DataFrame:
         candlesticks_periode = candlesticks.iloc[start_position:end_position]
         start_time = pd.to_datetime(candlesticks_periode["open time"].head(1), unit="ms").values[0]
@@ -125,10 +125,10 @@ class Backtest:
                 open_time = time
                 open_price = price
                 open_money = money
-                holding = money / price
+                holding = (money-money*fee) / price
                 money = 0
             elif signal == TradingSignal.SELL:
-                money = holding * price
+                money = (holding-holding*fee) * price
                 holding = 0
                 trades = trades.append(
                     {
