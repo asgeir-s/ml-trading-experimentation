@@ -43,7 +43,7 @@ candlesticks = pd.DataFrame(
 
 @dataclass
 class TestStrategy(Strategy):
-    init_candlesticks: InitVar[pd.DataFrame]
+    init_features: InitVar[pd.DataFrame] = None
     def __post_init__(self, init_features: pd.DataFrame) -> None:
         pass
 
@@ -101,11 +101,11 @@ def test_backtest():
 
     assert len(signals) == 4, "there should be 4 signals"
 
-    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position)
+    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position, 0.0)
 
     print(trades)
 
     end_money = trades.tail(1)["close money"].values[0]
 
     assert len(trades) == 2, "There should be 2 trades."
-    assert end_money > 1493 and end_money < 1494, "The ending amout of money should be 1493,82716049382716"
+    assert end_money > 149.3 and end_money < 149.4, "The ending amout of money should be 1493,82716049382716"
