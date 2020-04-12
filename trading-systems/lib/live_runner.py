@@ -8,116 +8,157 @@ from lib.tradingSignal import TradingSignal
 import pandas as pd
 from lib import data_util
 import time
-
-trades = None
-candlesticks = None
+from dataclasses import dataclass
 
 
-def start(
-    trading_strategy_instance_name: str,
-    asset: str,
-    base_asset: str,
-    candlestick_interval: str,
-    binance_client: Client,
-    strategy: Strategy,
-) -> str:
-    tradingpair = asset + base_asset
-    print(f"Tradingpair: {tradingpair}")
-    trades = data_util.load_trades(
-        instrument=tradingpair,
-        interval=candlestick_interval,
-        trading_strategy_instance_name=trading_strategy_instance_name,
-    )
-    current_position = get_current_position(binance_client, asset, base_asset)
-    assert (
-        trades is None or trades.tail(1)["signal"].values[0] == current_position
-    ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
-    candlesticks = data_util.load_candlesticks(
-        instrument=tradingpair, interval=candlestick_interval, binance_client=binance_client
-    )
-    print(f"Current position is (last signal): {current_position}")
-    binance_socket_manager = BinanceSocketManager(binance_client)
-    # start any sockets here, i.e a trade socket
-    connection_key = binance_socket_manager.start_kline_socket(
-        tradingpair,
-        setup_message_processor(binance_socket_manager, strategy),
-        interval=candlestick_interval,
-    )
-    # then start the socket manager
-    binance_socket_manager.start()
-    return connection_key
+@dataclass
+class LiveRunner:
+    trading_strategy_instance_name: str
+    asset: str
+    base_asset: str
+    candlestick_interval: str
+    strategy: Strategy
+    binance_client: Client
 
+    tradingpair: Optional[str] = None
+    current_position: Optional[TradingSignal] = None
+    binance_socket_manager: Any = None
+    binance_client: Any = None
+    binance_socket_connection_key: Optional[str] = None
 
-def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
-    asset_balance = binance_client.get_asset_balance(asset=asset)
-    base_asset_balance = binance_client.get_asset_balance(asset=base_asset)
-    print(f"Current position: Asset: {asset_balance}, Base asset: {base_asset_balance}")
-    if float(asset_balance["free"]) > 0.01:
-        return TradingSignal.BUY
-    else:
-        return TradingSignal.SELL
+    def start(self) -> str:
+        self.tradingpair = self.asset + self.base_asset
+        print(f"Tradingpair: {self.tradingpair}")
+        trades = data_util.load_trades(
+            instrument=self.tradingpair,
+            interval=self.candlestick_interval,
+            trading_strategy_instance_name=self.trading_strategy_instance_name,
+        )
+        self.current_position = self.get_current_position(
+            self.binance_client, self.asset, self.base_asset
+        )
+        last_trade_signal_saved = None if trades is None else trades.tail(1)
+        print(f"Last saved trade is: {last_trade_signal_saved}")
+        assert (
+            last_trade_signal_saved is None or (last_trade_signal_saved["signal"].values[0] == str(self.current_position))
+        ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
+        self.candlesticks = data_util.load_candlesticks(
+            instrument=self.tradingpair,
+            interval=self.candlestick_interval,
+            binance_client=self.binance_client,
+        )
+        print(f"Current position is (last signal): {self.current_position}")
+        self.binance_socket_manager = BinanceSocketManager(self.binance_client)
+        # start any sockets here, i.e a trade socket
+        self.binance_socket_connection_key = self.binance_socket_manager.start_kline_socket(
+            self.tradingpair, self.process_message, interval=self.candlestick_interval,
+        )
+        # then start the socket manager
+        self.binance_socket_manager.start()
+        return self.binance_socket_connection_key
 
+    @staticmethod
+    def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
+        asset_balance = binance_client.get_asset_balance(asset=asset)
+        base_asset_balance = binance_client.get_asset_balance(asset=base_asset)
+        print(f"Current position (from exchange): Asset: {asset_balance}, Base asset: {base_asset_balance}")
+        if float(asset_balance["free"]) > 0.000001:
+            print("Current position (from exchange)(last signal executed): BUY") 
+            return TradingSignal.BUY
+        else:
+            print("Current position (from exchange)(last signal executed): SELL") 
+            return TradingSignal.SELL
 
-def setup_message_processor(binance_socket_manager: Any, strategy: Strategy):
-    def process_message(msg: Any):
+    def process_message(self, msg: Any):
         signal: Optional[TradingSignal] = None
         if msg["e"] == "error":
             print(f"Error from websocket: {msg['m']}")
             # close and restart the socket
-            binance_socket_manager.close()
-            start(binance_socket_manager)
-
+            self.binance_socket_manager.close()
+            self.start()
         else:
             print("Prosessing new message. Type: {}".format(msg["e"]))
             print(msg)
             candle_raw = msg["k"]
+            current_close_price = candle_raw["c"]
             if candle_raw["x"] == True:
-                candlesticks = data.add_candle(
-                    instrument=TRADINGPAIR,
-                    interval=candlestick_interval,
-                    new_candle=msg_to_candle(msg),
+                self.candlesticks = data_util.add_candle(
+                    instrument=self.tradingpair,
+                    interval=self.candlestick_interval,
+                    new_candle=self.msg_to_candle(msg),
                 )
-                signal = strategy.on_candlestick(candlesticks, trades)
+                signal = self.strategy.on_candlestick(
+                    self.candlesticks,
+                    data_util.load_trades(
+                        instrument=self.tradingpair,
+                        interval=self.candlestick_interval,
+                        trading_strategy_instance_name=self.trading_strategy_instance_name,
+                    ),
+                )
             else:
-                current_position = (
-                    trades.tail(1)["signal"].values[0] if trades is not None else TradingSignal.SELL
-                )
-                signal = strategy.on_tick(candle_raw["c"], current_position)
-
+                signal = self.strategy.on_tick(current_close_price, self.current_position)
             if signal is not None:
-                place_order(signal, candle_raw["c"])
+                self.place_order(
+                    signal=signal, last_price=current_close_price,
+                )
             else:
                 print(f"New message processed but no new signal.")
 
-    return process_message
+    def quan(self):
+        bal = self._client.get_asset_balance(asset="BNB")
+        quantity = (float(bal["free"])) / self._price * 0.9995
+        precision = int(round(-math.log(self._step_size, 10), 0))
+        quantity = float(round(quantity, precision))
+        return quantity
 
+    def place_order(
+        self, signal: TradingSignal, last_price: float,
+    ):
+        print(f"Placing new order: signal: {signal}")
+        order: Optional[Any] = None
+        if signal == TradingSignal.BUY:
+            money = self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
+            quantity = float(money) / float(last_price) * 0.9995
+            quantity = round(quantity, 6)
+            print(f"ORDER: Market buy {quantity} of {self.tradingpair}")
+            order = self.binance_client.order_market_buy(symbol=self.tradingpair, quantity=quantity)
+        elif signal == TradingSignal.SELL:
+            quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
+            quantity = f"{quantity:.8f}"[:-2]  # make sure we round down
+            print(f"ORDER: Market sell {quantity} of {self.tradingpair}")
+            order = self.binance_client.order_market_sell(
+                symbol=self.tradingpair, quantity=quantity
+            )
 
-def place_order(signal: TradingSignal, last_price: float):
-    print(f"Placing new order: signal: {signal}")
-    order: Any
-    if signal == TradingSignal.BUY:
-        money = client.get_asset_balance(asset=BASE_ASSET)
-        quantity = (money / last_price) * 0.98
-        order = client.order_market_buy(symbol=TRADINGPAIR, quantity=quantity)
-    elif signal == TradingSignal.SELL:
-        quantity = client.get_asset_balance(asset=ASSET)
-        order = client.order_market_sell(symbol=TRADINGPAIR, quantity=quantity)
+        while order["status"] not in ("FILLED", "CANCELED", "REJECTED", "EXPIRED"):
+            order = self.binance_client.get_order(symbol=self.tradingpair, orderId=order["orderId"])
+            print("ORDER status: " + order)
+            time.sleep(2 * 60)
 
-    order = None
-    while order["status"] not in ("FILLED", "CANCELED", "REJECTED", "EXPIRED"):
-        order = client.get_order(symbol=TRADINGPAIR, orderId=order["orderId"])
-        print("current order status: " + order)
-        time.sleep(2 * 60)
+        if order["status"] == "FILLED":
+            print("Order successfully executed!:")
+            print(order)
 
-    if order["status"] == "FILLED":
-        print("Order successfully executed! : " + order)
+            data_util.add_trade(
+                instrument=self.tradingpair,
+                interval=self.candlestick_interval,
+                trading_strategy_instance_name=self.trading_strategy_instance_name,
+                new_trade_dict=self.order_to_trade(order, signal),
+            )
+            self.current_position = signal
 
-        order_dict = {
+        else:
+            print("Order failed! :")
+            print(order)
+
+    @staticmethod
+    def order_to_trade(order: Any, signal: TradingSignal):
+        return {
             "orderId": order["orderId"],
-            "transactTime": order["transactionTime"],
+            "transactTime": order["transactTime"],
             "price": order["price"],
             "signal": signal,
-            "origQty": order["orgQty"],
+            "origQty": order["origQty"],
             "executedQty": order["executedQty"],
             "cummulativeQuoteQty": order["cummulativeQuoteQty"],
             "timeInForce": order["timeInForce"],
@@ -125,29 +166,20 @@ def place_order(signal: TradingSignal, last_price: float):
             "side": order["side"],
         }
 
-        trades = data_util.add_trade(
-            instrument=TRADINGPAIR,
-            interval=candlestick_interval,
-            trading_strategy_instance_name=TRADING_STRATEGY_INSTANCE_NAME,
-            new_trade_dict=order_dict,
-        )
-    else:
-        print("Order failed! :" + order)
-
-
-def msg_to_candle(msg: Any):
-    assert msg["e"] == "kline", "Should be a candle"
-    raw_candle = msg["k"]
-    return {
-        "open time": raw_candle["t"],
-        "open": raw_candle["o"],
-        "high": raw_candle["h"],
-        "low": raw_candle["l"],
-        "close": raw_candle["c"],
-        "volume": raw_candle["v"],
-        "close time": raw_candle["T"],
-        "quote asset volume": raw_candle["q"],
-        "number of trades": raw_candle["n"],
-        "taker buy base asset volume": raw_candle["V"],
-        "taker buy quote asset volume": raw_candle["Q"],
-    }
+    @staticmethod
+    def msg_to_candle(msg: Any):
+        assert msg["e"] == "kline", "Should be a candle"
+        raw_candle = msg["k"]
+        return {
+            "open time": raw_candle["t"],
+            "open": raw_candle["o"],
+            "high": raw_candle["h"],
+            "low": raw_candle["l"],
+            "close": raw_candle["c"],
+            "volume": raw_candle["v"],
+            "close time": raw_candle["T"],
+            "quote asset volume": raw_candle["q"],
+            "number of trades": raw_candle["n"],
+            "taker buy base asset volume": raw_candle["V"],
+            "taker buy quote asset volume": raw_candle["Q"],
+        }

@@ -2,7 +2,7 @@ from strategies.second.second import Second
 from lib.backtest import Backtest
 from lib.charting import chartTrades
 from lib import data_util
-from lib.live_runner import start
+from lib.live_runner import LiveRunner
 import pandas as pd
 import json
 from binance.client import Client
@@ -11,7 +11,6 @@ TRADING_STRATEGY_INSTANCE_NAME = "test_runner_1"
 
 ASSET = "BTC"
 BASE_ASSET = "USDT"
-TRADINGPAIR = ASSET + BASE_ASSET
 
 candlestick_interval = "1h"
 candlesticks: pd.DataFrame
@@ -21,7 +20,7 @@ trades: pd.DataFrame
 def main(binance_client):
     print("Start loading candlesticks")
     candlesticks = data_util.load_candlesticks(
-        instrument=TRADINGPAIR, interval=candlestick_interval, binance_client=binance_client
+        instrument=ASSET + BASE_ASSET, interval=candlestick_interval, binance_client=binance_client
     )
     print("Finished loading candlesticks")
 
@@ -34,7 +33,8 @@ def main(binance_client):
     print("Finished initiating strategy")
 
     print("Start live trading")
-    start(
+
+    runner = LiveRunner(
         trading_strategy_instance_name=TRADING_STRATEGY_INSTANCE_NAME,
         asset=ASSET,
         base_asset=BASE_ASSET,
@@ -42,7 +42,8 @@ def main(binance_client):
         binance_client=binance_client,
         strategy=strategy,
     )
-    print("Finished live trading")
+
+    runner.start()
 
 
 if __name__ == "__main__":
