@@ -9,49 +9,50 @@ import pandas as pd
 from lib import data_util
 import time
 
-TRADING_STRATEGY_INSTANCE_NAME = "test_runner_1"
-
-ASSET = "BTC"
-BASE_ASSET = "USDT"
-TRADINGPAIR = ASSET + BASE_ASSET
-
-candlestick_interval = "1h"
-candlesticks: pd.DataFrame
-trades: pd.DataFrame
+trades = None
+candlesticks = None
 
 
-def main(binance_client):
-    start(binance_client)
-
-
-def start(binance_client, strategy: Strategy) -> str:
-    print("Start called")
+def start(
+    trading_strategy_instance_name: str,
+    asset: str,
+    base_asset: str,
+    candlestick_interval: str,
+    binance_client: Client,
+    strategy: Strategy,
+) -> str:
+    tradingpair = asset + base_asset
+    print(f"Tradingpair: {tradingpair}")
     trades = data_util.load_trades(
-        instrument=TRADINGPAIR,
+        instrument=tradingpair,
         interval=candlestick_interval,
-        trading_strategy_instance_name=TRADING_STRATEGY_INSTANCE_NAME,
+        trading_strategy_instance_name=trading_strategy_instance_name,
     )
-    current_position = get_current_position(binance_client)
-    assert trades.tail(1)["signal"].values[0] == current_position, "The last trade in the trades dataframe and the current position on the exchange should be the same."
+    current_position = get_current_position(binance_client, asset, base_asset)
+    assert (
+        trades is None or trades.tail(1)["signal"].values[0] == current_position
+    ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
     candlesticks = data_util.load_candlesticks(
-        instrument=TRADINGPAIR, interval=candlestick_interval, binance_client=binance_client
+        instrument=tradingpair, interval=candlestick_interval, binance_client=binance_client
     )
     print(f"Current position is (last signal): {current_position}")
     binance_socket_manager = BinanceSocketManager(binance_client)
     # start any sockets here, i.e a trade socket
     connection_key = binance_socket_manager.start_kline_socket(
-        TRADINGPAIR,
+        tradingpair,
         setup_message_processor(binance_socket_manager, strategy),
-        interval=KLINE_INTERVAL_1HOUR,
+        interval=candlestick_interval,
     )
     # then start the socket manager
     binance_socket_manager.start()
     return connection_key
 
 
-def get_current_position(binance_client) -> TradingSignal:
-    balance = client.get_asset_balance(asset=INSTRUMENT)
-    if balance > 0.01:
+def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
+    asset_balance = binance_client.get_asset_balance(asset=asset)
+    base_asset_balance = binance_client.get_asset_balance(asset=base_asset)
+    print(f"Current position: Asset: {asset_balance}, Base asset: {base_asset_balance}")
+    if float(asset_balance["free"]) > 0.01:
         return TradingSignal.BUY
     else:
         return TradingSignal.SELL
@@ -67,9 +68,10 @@ def setup_message_processor(binance_socket_manager: Any, strategy: Strategy):
             start(binance_socket_manager)
 
         else:
-            print("message type: {}".format(msg["e"]))
+            print("Prosessing new message. Type: {}".format(msg["e"]))
             print(msg)
-            if msg["x"] == True:
+            candle_raw = msg["k"]
+            if candle_raw["x"] == True:
                 candlesticks = data.add_candle(
                     instrument=TRADINGPAIR,
                     interval=candlestick_interval,
@@ -77,10 +79,15 @@ def setup_message_processor(binance_socket_manager: Any, strategy: Strategy):
                 )
                 signal = strategy.on_candlestick(candlesticks, trades)
             else:
-                signal = strategy.on_tick(msg["c"], trades.tail(1)["signal"].values[0])
+                current_position = (
+                    trades.tail(1)["signal"].values[0] if trades is not None else TradingSignal.SELL
+                )
+                signal = strategy.on_tick(candle_raw["c"], current_position)
 
             if signal is not None:
-                place_order(signal, msg["c"])
+                place_order(signal, candle_raw["c"])
+            else:
+                print(f"New message processed but no new signal.")
 
     return process_message
 
@@ -144,11 +151,3 @@ def msg_to_candle(msg: Any):
         "taker buy base asset volume": raw_candle["V"],
         "taker buy quote asset volume": raw_candle["Q"],
     }
-
-
-if __name__ == "__main__":
-    with open("./secrets.json") as json_file:
-        data = json.load(json_file)
-        binance_secrets = data["binance"]
-        client = Client(binance_secrets["apiKey"], binance_secrets["apiSecret"])
-        main(client)
