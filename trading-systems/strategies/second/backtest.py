@@ -1,11 +1,11 @@
 from strategies.second.second import Second
-from lib.data_loader import load_candlesticks
+from lib.data_util import load_candlesticks
 from lib.backtest import Backtest
 from lib.charting import chartTrades
 
 
 def main():
-    candlesticks = load_candlesticks("1h")
+    candlesticks = load_candlesticks("BTCUSDT", "1h")
 
     trade_start_position = 18000
     trade_end_position = len(candlesticks)

@@ -13,41 +13,41 @@ def chartTrades(
     p1.xaxis.axis_label = "Date"
     p1.yaxis.axis_label = "Value"
 
-    holding = pd.DataFrame(columns=["time", "money"])
+    holding = pd.DataFrame(columns=["transactTime", "money"])
     first_candlestick = candlesticks_periode.head(1)
     holding = holding.append(
         {
-            "time": first_candlestick["open time"].values[0],
+            "transactTime": first_candlestick["open time"].values[0],
             "money": first_candlestick["open"].values[0],
         },
         ignore_index=True,
     )
 
     ordered = trades[["close time", "close money"]].rename(
-        columns={"close time": "time", "close money": "money"}
+        columns={"close time": "transactTime", "close money": "money"}
     )
 
     ordered = ordered.append(
         trades[["open time", "open money"]].rename(
-            columns={"open time": "time", "open money": "money"}
+            columns={"open time": "transactTime", "open money": "money"}
         ),
         ignore_index=True,
     )
 
-    ordered = ordered.sort_values("time")
+    ordered = ordered.sort_values("transactTime")
 
     holding = holding.append(ordered, ignore_index=True,)
 
     last_candlestick = candlesticks_periode.tail(1)
     holding = holding.append(
         {
-            "time": last_candlestick["open time"].values[0],
+            "transactTime": last_candlestick["open time"].values[0],
             "money": trades["close money"].tail(1).values[0],
         },
         ignore_index=True,
     )
 
-    p1.line((holding["time"]), holding["money"], color="#A6CEE3", legend_label="Trading Strategy")
+    p1.line((holding["transactTime"]), holding["money"], color="#A6CEE3", legend_label="Trading Strategy")
     p1.line(
         (candlesticks_periode["close time"]),
         candlesticks_periode["close"],

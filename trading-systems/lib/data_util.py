@@ -27,6 +27,8 @@ def load_candlesticks(instrument: str, interval: str, binance_client: Optional[A
     """
     if custom_tmp_path is not None:
         tmp_path = custom_tmp_path
+    else:
+        tmp_path = "tmp/"
 
     if candlesticks.get(instrument) is None:
         candlesticks[instrument] = {}

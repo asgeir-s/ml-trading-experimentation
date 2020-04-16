@@ -36,7 +36,7 @@ class Backtest:
         init_features = features.iloc[:start_position]
         strategy = TradingStrategy(init_features=init_features)
 
-        trades = pd.DataFrame(columns=["time", "signal", "price"])
+        trades = pd.DataFrame(columns=["transactTime", "signal", "price"])
         for position in range(start_position, end_position):
             period_features = features.iloc[:position]
 
@@ -56,7 +56,7 @@ class Backtest:
                     0
                 ]
                 trades = trades.append(
-                    {"time": time, "signal": signal, "price": trade_price}, ignore_index=True,
+                    {"transactTime": time, "signal": signal, "price": trade_price}, ignore_index=True,
                 )
                 # check if take profit or stop loss should be executed before getting next periode
                 if strategy.need_ticks(signal):
@@ -70,7 +70,7 @@ class Backtest:
                                 f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
                             )
                             trades = trades.append(
-                                {"time": time, "signal": signal, "price": trade_price},
+                                {"transactTime": time, "signal": signal, "price": trade_price},
                                 ignore_index=True,
                             )
             if position % 100 == 0:
@@ -116,7 +116,7 @@ class Backtest:
         for index, row in signals.iterrows():
             signal = row["signal"]
             price = row["price"]
-            time = pd.to_datetime(row["time"])
+            time = pd.to_datetime(row["transactTime"])
 
             if index == len(signals) and holding != 0:
                 signal = TradingSignal.SELL

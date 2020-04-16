@@ -47,7 +47,7 @@ class XgboostBaseModel(Model):
 
     def print_info(self) -> None:
         xgb.plot_importance(self.model)
-        plt.rcParams["figure.figsize"] = [5, 5]
+        plt.rcParams["figure.figsize"] = [15, 30]
         plt.show()
 
     @staticmethod
