@@ -9,6 +9,7 @@ import pandas as pd
 from lib import data_util
 import time
 from dataclasses import dataclass
+from functools import reduce
 
 
 @dataclass
@@ -39,8 +40,8 @@ class LiveRunner:
         )
         last_trade_signal_saved = None if trades is None else trades.tail(1)
         print(f"Last saved trade is: {last_trade_signal_saved}")
-        assert (
-            last_trade_signal_saved is None or (last_trade_signal_saved["signal"].values[0] == str(self.current_position))
+        assert last_trade_signal_saved is None or (
+            last_trade_signal_saved["signal"].values[0] == str(self.current_position)
         ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
         self.candlesticks = data_util.load_candlesticks(
             instrument=self.tradingpair,
@@ -61,12 +62,14 @@ class LiveRunner:
     def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
         asset_balance = binance_client.get_asset_balance(asset=asset)
         base_asset_balance = binance_client.get_asset_balance(asset=base_asset)
-        print(f"Current position (from exchange): Asset: {asset_balance}, Base asset: {base_asset_balance}")
+        print(
+            f"Current position (from exchange): Asset: {asset_balance}, Base asset: {base_asset_balance}"
+        )
         if float(asset_balance["free"]) > 0.000001:
-            print("Current position (from exchange)(last signal executed): BUY") 
+            print("Current position (from exchange)(last signal executed): BUY")
             return TradingSignal.BUY
         else:
-            print("Current position (from exchange)(last signal executed): SELL") 
+            print("Current position (from exchange)(last signal executed): SELL")
             return TradingSignal.SELL
 
     def process_message(self, msg: Any):
@@ -77,8 +80,6 @@ class LiveRunner:
             self.binance_socket_manager.close()
             self.start()
         else:
-            print("Prosessing new message. Type: {}".format(msg["e"]))
-            print(msg)
             candle_raw = msg["k"]
             current_close_price = candle_raw["c"]
             if candle_raw["x"] == True:
@@ -102,14 +103,7 @@ class LiveRunner:
                     signal=signal, last_price=current_close_price,
                 )
             else:
-                print(f"New message processed but no new signal.")
-
-    def quan(self):
-        bal = self._client.get_asset_balance(asset="BNB")
-        quantity = (float(bal["free"])) / self._price * 0.9995
-        precision = int(round(-math.log(self._step_size, 10), 0))
-        quantity = float(round(quantity, precision))
-        return quantity
+                print(".", end="", flush=True)
 
     def place_order(
         self, signal: TradingSignal, last_price: float,
@@ -153,17 +147,27 @@ class LiveRunner:
 
     @staticmethod
     def order_to_trade(order: Any, signal: TradingSignal):
+        acc_price, acc_quantity = reduce(
+            lambda acc, item: (
+                acc[0] + float(item["price"]) * float(item["qty"]),
+                acc[1] + float(item["qty"]),
+            ),
+            order["fills"],
+            (0.0, 0.0),
+        )
+        avg_price = acc_price / acc_quantity
+
         return {
-            "orderId": order["orderId"],
-            "transactTime": order["transactTime"],
-            "price": order["price"],
-            "signal": signal,
-            "origQty": order["origQty"],
-            "executedQty": order["executedQty"],
-            "cummulativeQuoteQty": order["cummulativeQuoteQty"],
-            "timeInForce": order["timeInForce"],
-            "type": order["type"],
-            "side": order["side"],
+            "orderId": int(order["orderId"]),
+            "transactTime": int(order["transactTime"]),
+            "price": avg_price,
+            "signal": str(signal),
+            "origQty": float(order["origQty"]),
+            "executedQty": float(order["executedQty"]),
+            "cummulativeQuoteQty": float(order["cummulativeQuoteQty"]),
+            "timeInForce": str(order["timeInForce"]),
+            "type": str(order["type"]),
+            "side": str(order["side"]),
         }
 
     @staticmethod
@@ -171,15 +175,15 @@ class LiveRunner:
         assert msg["e"] == "kline", "Should be a candle"
         raw_candle = msg["k"]
         return {
-            "open time": raw_candle["t"],
-            "open": raw_candle["o"],
-            "high": raw_candle["h"],
-            "low": raw_candle["l"],
-            "close": raw_candle["c"],
-            "volume": raw_candle["v"],
-            "close time": raw_candle["T"],
-            "quote asset volume": raw_candle["q"],
-            "number of trades": raw_candle["n"],
-            "taker buy base asset volume": raw_candle["V"],
-            "taker buy quote asset volume": raw_candle["Q"],
+            "open time": int(raw_candle["t"]),
+            "open": float(raw_candle["o"]),
+            "high": float(raw_candle["h"]),
+            "low": float(raw_candle["l"]),
+            "close": float(raw_candle["c"]),
+            "volume": float(raw_candle["v"]),
+            "close time": int(raw_candle["T"]),
+            "quote asset volume": float(raw_candle["q"]),
+            "number of trades": int(raw_candle["n"]),
+            "taker buy base asset volume": float(raw_candle["V"]),
+            "taker buy quote asset volume": float(raw_candle["Q"]),
         }

@@ -78,7 +78,7 @@ class Strategy(abc.ABC):
             return None, None, None
         else:
             last = trades.tail(1)
-            time = last["time"].values[0]
+            time = last["transactTime"].values[0]
             signal = last["signal"].values[0]
             price = last["price"].values[0]
             return time, signal, price

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Union, Dict, Any, Optional
+from lib.tradingSignal import TradingSignal
 
 candlesticks = {}
 trades = {}
@@ -20,7 +21,7 @@ def create_directory_if_not_exists(path: str) -> None:
     Path(path).mkdir(parents=True, exist_ok=True)
 
 
-def load_candlesticks(instrument: str, interval: str, binance_client: Any):
+def load_candlesticks(instrument: str, interval: str, binance_client: Optional[Any] = None):
     """
     Returns all candlesticks up until NOW and persists it to the csv.
     """
@@ -38,64 +39,69 @@ def load_candlesticks(instrument: str, interval: str, binance_client: Any):
             else "1 Jan, 2017"
         )
         print(f"Closetime of newest candle is {last_candle_close}")
-        new_raw_candles_raw = binance_client.get_historical_klines(
-            instrument, interval, last_candle_close
-        )
-
-        new_candles = pd.DataFrame.from_records(
-            new_raw_candles_raw,
-            columns=[
-                "open time",
-                "open",
-                "high",
-                "low",
-                "close",
-                "volume",
-                "close time",
-                "quote asset volume",
-                "number of trades",
-                "taker buy base asset volume",
-                "taker buy quote asset volume",
-                "ignore",
-            ],
-        ).drop(columns=["ignore"])
-        new_candles = new_candles.astype(
-            {
-                "open time": int,
-                "open": float,
-                "high": float,
-                "low": float,
-                "close": float,
-                "volume": float,
-                "close time": int,
-                "quote asset volume": float,
-                "number of trades": int,
-                "taker buy base asset volume": float,
-                "taker buy quote asset volume": float,
-            }
-        )
-
-        create_directory_if_not_exists(f"{tmp_path}/data/binance/")
-
-        new_candles.to_csv(
-            f"{tmp_path}/data/binance/candlestick-{instrument}-{interval}.csv",
-            mode="w" if new_csv else "a",
-            header=True if new_csv else False,
-            index=False,
-        )
-        if candlesticks[instrument][interval] is None:
-            candlesticks[instrument][interval] = new_candles
-        else:
-            candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
-                new_candles, ignore_index=True
+        if binance_client is not None:
+            print("Geting new candlesticks from Binance.")
+            new_raw_candles_raw = binance_client.get_historical_klines(
+                instrument, interval, last_candle_close
             )
+
+            new_candles = pd.DataFrame.from_records(
+                new_raw_candles_raw,
+                columns=[
+                    "open time",
+                    "open",
+                    "high",
+                    "low",
+                    "close",
+                    "volume",
+                    "close time",
+                    "quote asset volume",
+                    "number of trades",
+                    "taker buy base asset volume",
+                    "taker buy quote asset volume",
+                    "ignore",
+                ],
+            ).drop(columns=["ignore"])
+            new_candles = new_candles.astype(
+                {
+                    "open time": int,
+                    "open": float,
+                    "high": float,
+                    "low": float,
+                    "close": float,
+                    "volume": float,
+                    "close time": int,
+                    "quote asset volume": float,
+                    "number of trades": int,
+                    "taker buy base asset volume": float,
+                    "taker buy quote asset volume": float,
+                }
+            )
+
+            create_directory_if_not_exists(f"{tmp_path}/data/binance/")
+
+            new_candles.to_csv(
+                f"{tmp_path}/data/binance/candlestick-{instrument}-{interval}.csv",
+                mode="w" if new_csv else "a",
+                header=True if new_csv else False,
+                index=False,
+            )
+            if candlesticks[instrument][interval] is None:
+                candlesticks[instrument][interval] = new_candles
+            else:
+                candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
+                    new_candles, ignore_index=True
+                )
+
+        else:
+            print("Only using data on file. Will not download new data from Binance.")
 
     return candlesticks[instrument][interval]
 
 
-def add_candle(instrument: str, interval: str, new_candle_dict: Dict):
+def add_candle(instrument: str, interval: str, new_candle: Dict):
     candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
-        new_candle_dict, ignore_index=True
+        new_candle, ignore_index=True
     )
     new_candle = candlesticks[instrument][interval].tail(0)
     new_candle.to_csv(
@@ -114,6 +120,20 @@ def load_trades(instrument: str, interval: str, trading_strategy_instance_name: 
     name = f"{trading_strategy_instance_name}-{instrument}-{interval}"
     if trades.get(name) is None:
         trades[name] = read_csv_if_exists(f"{tmp_path}/trades/" + name + ".csv")
+        trades[name] = trades[name].astype(
+            {
+                "orderId": int,
+                "transactTime": int,
+                "price": float,
+                "signal": str,
+                "origQty": float,
+                "executedQty": float,
+                "cummulativeQuoteQty": float,
+                "timeInForce": str,
+                "type": str,
+                "side": str,
+            }
+        )
 
     return trades[name]
 

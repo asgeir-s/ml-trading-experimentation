@@ -1,11 +1,11 @@
 from model import XgboostBaseModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
-from lib.data_loader import load_candlesticks
+from lib.data_util import load_candlesticks
 
 
 def main():
-    candlesticks = load_candlesticks("1h")
+    candlesticks = load_candlesticks("BTCUSDT", "1h")
 
     features = XgboostBaseModel.generate_features(candlesticks)
     target = XgboostBaseModel.generate_target(features)
