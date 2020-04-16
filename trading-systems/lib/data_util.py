@@ -21,10 +21,13 @@ def create_directory_if_not_exists(path: str) -> None:
     Path(path).mkdir(parents=True, exist_ok=True)
 
 
-def load_candlesticks(instrument: str, interval: str, binance_client: Optional[Any] = None):
+def load_candlesticks(instrument: str, interval: str, binance_client: Optional[Any] = None, custom_tmp_path: Optional[str] = None):
     """
     Returns all candlesticks up until NOW and persists it to the csv.
     """
+    if custom_tmp_path is not None:
+        tmp_path = custom_tmp_path
+
     if candlesticks.get(instrument) is None:
         candlesticks[instrument] = {}
 

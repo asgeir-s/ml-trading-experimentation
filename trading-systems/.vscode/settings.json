@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "conda-env/bin/python"
+    "python.pythonPath": "conda-env/bin/python",
+    "python.dataScience.jupyterServerURI": "local"
 }

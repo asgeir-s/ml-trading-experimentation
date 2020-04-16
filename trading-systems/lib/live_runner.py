@@ -75,6 +75,7 @@ class LiveRunner:
     def process_message(self, msg: Any):
         signal: Optional[TradingSignal] = None
         if msg["e"] == "error":
+            print("")
             print(f"Error from websocket: {msg['m']}")
             # close and restart the socket
             self.binance_socket_manager.close()
@@ -96,6 +97,7 @@ class LiveRunner:
                         trading_strategy_instance_name=self.trading_strategy_instance_name,
                     ),
                 )
+                print("*", end="", flush=True)
             else:
                 signal = self.strategy.on_tick(current_close_price, self.current_position)
             if signal is not None:
