@@ -15,7 +15,7 @@ def split_features_and_target_into_train_and_test_set(
     training_set_features = features.iloc[:training_set_size]
     training_set_target = target[:training_set_size]
 
-    test_set_features = features.iloc[training_set_size : len(features)]
-    test_set_target = target[training_set_size : len(features)]
+    test_set_features = features.iloc[training_set_size: len(features)]
+    test_set_target = target[training_set_size: len(features)]
 
     return training_set_features, training_set_target, test_set_features, test_set_target

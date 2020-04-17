@@ -2,13 +2,10 @@ from lib.backtest import Backtest
 import pandas as pd
 import numpy as np
 from lib.strategy import Strategy
-from lib.data_splitter import split_features_and_target_into_train_and_test_set
 from dataclasses import InitVar
-from models.xgboost.model import XgboostBaseModel
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
-import abc
-from typing import List
+from typing import List, Optional, Tuple
 
 data = [
     [0, 100, 110, 90, 100, 50, 2, 200, 200, 44, 400],
@@ -41,49 +38,63 @@ candlesticks = pd.DataFrame(
     ],
 )
 
-@dataclass
+
+@dataclass  # typing: ignore
 class TestStrategy(Strategy):
     init_features: InitVar[pd.DataFrame] = None
+
     def __post_init__(self, init_features: pd.DataFrame) -> None:
         pass
 
-    def on_candlestick(self, candlesticks: pd.DataFrame, trades: pd.DataFrame) -> TradingSignal:
+    def on_candlestick(self, candlesticks: pd.DataFrame, trades: pd.DataFrame) -> Optional[TradingSignal]:
         features = self.generate_features(candlesticks)
         return self.on_candlestick_with_features(features, trades)
 
-    def on_candlestick_with_features(self, features: pd.DataFrame, signals: pd.DataFrame) -> TradingSignal:
-        prediction = 1 if features.tail(1)["close"].values[0] > 100 else -1 if features.tail(1)["close"].values[0] < 100 else 0
+    def on_candlestick_with_features(
+        self, features: pd.DataFrame, signals: pd.DataFrame
+    ) -> Optional[TradingSignal]:
+        prediction = (
+            1
+            if features.tail(1)["close"].values[0] > 100
+            else -1
+            if features.tail(1)["close"].values[0] < 100
+            else 0
+        )
         return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
 
     def on_candlestick_with_features_and_perdictions(
         self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
-    ) -> TradingSignal:
+    ) -> Optional[TradingSignal]:
         print(predictions)
         last_signal = (
             TradingSignal.SELL if len(signals) == 0 else signals.tail(1)["signal"].values[0]
         )
+        signal: Optional[TradingSignal]
         if predictions[0] == 1 and last_signal == TradingSignal.SELL:
-            return TradingSignal.BUY
+            signal = TradingSignal.BUY
         elif predictions[0] == -1 and last_signal == TradingSignal.BUY:
-            return TradingSignal.SELL
+            signal = TradingSignal.SELL
+        return signal
 
     @staticmethod
-    def generate_features(candlesticks: pd.DataFrame) -> pd.DataFrame:
-        return candlesticks[["open", "close"]]
+    def generate_features(candlesticks: pd.DataFrame) -> Tuple[pd.DataFrame, ...]:
+        return (candlesticks[["open", "close"]], )
 
     def __train(self, features: pd.DataFrame):
         pass
 
     @staticmethod
-    def _generate_target(features: pd.DataFrame) -> pd.DataFrame:
+    def _generate_target(features: Tuple[pd.DataFrame, ...]) -> Tuple[pd.Series]:
         up_treshold = 100
         down_treshold = 100
+
+        features_0 = features[0]
         conditions = [
-            features["close"] > up_treshold,
-            features["close"] < down_treshold,
+            features_0["close"] > up_treshold,
+            features_0["close"] < down_treshold,
         ]
         choices = [1, -1]
-        return pd.Series(np.select(conditions, choices, default=0))
+        return (pd.Series(np.select(conditions, choices, default=0)), )
 
 
 def test_backtest():
@@ -95,7 +106,9 @@ def test_backtest():
     trade_start_position = 1
     trade_end_position = len(features)
 
-    signals = Backtest._runWithTarget(TestStrategy, features, targets ,candlesticks, trade_start_position, trade_end_position)
+    signals = Backtest._runWithTarget(
+        TestStrategy, features, targets, candlesticks, trade_start_position, trade_end_position
+    )
 
     print(signals)
 
@@ -108,4 +121,6 @@ def test_backtest():
     end_money = trades.tail(1)["close money"].values[0]
 
     assert len(trades) == 2, "There should be 2 trades."
-    assert end_money > 149.3 and end_money < 149.4, "The ending amout of money should be 1493,82716049382716"
+    assert (
+        end_money > 149.3 and end_money < 149.4
+    ), "The ending amount of money should be 1493,82716049382716"

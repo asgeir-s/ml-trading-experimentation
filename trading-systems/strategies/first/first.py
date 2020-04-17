@@ -5,23 +5,22 @@ from dataclasses import InitVar
 from models.xgboost.model import XgboostBaseModel
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
-import abc
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 @dataclass
 class First(Strategy):
 
-    init_candlesticks: InitVar[pd.DataFrame]
+    init_features: InitVar[pd.DataFrame] = None
     xgboost_novice: XgboostBaseModel = None
 
-    def __post_init__(self, init_features: pd.DataFrame) -> None:
+    def __post_init__(self, init_features: Tuple[pd.DataFrame]) -> None:
         self.xgboost_novice = XgboostBaseModel()
         self.__train(init_features)
 
     def on_candlestick_with_features(
-        self, features: pd.DataFrame, signals: pd.DataFrame
-    ) -> TradingSignal:
+        self, features: Tuple[pd.DataFrame, ...], signals: pd.DataFrame
+    ) -> Optional[TradingSignal]:
         if len(features) % 100 == 0:
             print("First Strategy - Start retraining.")
             self.__train(features)
@@ -31,36 +30,41 @@ class First(Strategy):
         return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
 
     def on_candlestick_with_features_and_perdictions(
-        self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
-    ) -> TradingSignal:
+        self, features: Tuple[pd.DataFrame, ...], signals: pd.DataFrame, predictions: List[float],
+    ) -> Optional[TradingSignal]:
         last_signal = (
             TradingSignal.SELL if len(signals) == 0 else signals.tail(1)["signal"].values[0]
         )
         prediction = predictions[0]
 
-        if last_signal == TradingSignal.SELL and prediction > 1.5:
-            return TradingSignal.BUY
-        elif last_signal == TradingSignal.BUY and prediction < 0.5:
-            return TradingSignal.SELL
+        signal: Optional[TradingSignal] = None
 
+        if last_signal == TradingSignal.SELL and prediction > 1.5:
+            signal = TradingSignal.BUY
+        elif last_signal == TradingSignal.BUY and prediction < 0.5:
+            signal = TradingSignal.SELL
+        return signal
 
     @staticmethod
-    def generate_features(candlesticks: pd.DataFrame) -> pd.DataFrame:
-        """Should return a dataframe containing all features needed by this strategy (for all its models etc)"""
-        XgboostBaseModelFeatures = XgboostBaseModel.generate_features(candlesticks)
-        return XgboostBaseModelFeatures
+    def generate_features(candlesticks: pd.DataFrame) -> Tuple[pd.DataFrame, ...]:
+        """
+        Should return a dataframe containing all features needed by this
+        strategy (for all its models etc)
+        """
+        xgboostBaseModelFeatures = XgboostBaseModel.generate_features(candlesticks)
+        return (xgboostBaseModelFeatures,)
 
-    def __train(self, features: pd.DataFrame):
+    def __train(self, features: Tuple[pd.DataFrame, ...]):
         target = self._generate_target(features)
         (
             training_set_features,
             training_set_target,
             _,
             _,
-        ) = split_features_and_target_into_train_and_test_set(features, target, 0)
+        ) = split_features_and_target_into_train_and_test_set(features[0], target[0], 0)
 
         self.xgboost_novice.train(training_set_features, training_set_target)
 
     @staticmethod
-    def _generate_target(features: pd.DataFrame) -> pd.DataFrame:
-        return XgboostBaseModel.generate_target(features)
+    def _generate_target(features: Tuple[pd.DataFrame, ...]) -> Tuple[pd.Series, ...]:
+        return (XgboostBaseModel.generate_target(features[0]),)

@@ -1,4 +1,22 @@
 {
     "python.pythonPath": "conda-env/bin/python",
-    "python.dataScience.jupyterServerURI": "local"
+    "python.dataScience.jupyterServerURI": "local",
+    "cSpell.words": [
+        "BTCUSDT",
+        "MACD",
+        "USDT",
+        "astype",
+        "bukosabino",
+        "bytree",
+        "cummulative",
+        "fillna",
+        "iloc",
+        "iterrows",
+        "kfold",
+        "klines",
+        "noqa",
+        "pyplot",
+        "rmse",
+        "sklearn"
+    ]
 }

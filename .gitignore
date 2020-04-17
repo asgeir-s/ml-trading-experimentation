@@ -1,2 +1,4 @@
 **/__pycache__/**
 trading-systems/secrets.json
+**/.mypy_cache/**
+**/.DS_Store

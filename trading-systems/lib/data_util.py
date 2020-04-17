@@ -1,11 +1,9 @@
 import pandas as pd
-import numpy as np
 from pathlib import Path
 from typing import Union, Dict, Any, Optional
-from lib.tradingSignal import TradingSignal
 
-candlesticks = {}
-trades = {}
+candlesticks: Dict[str, Dict[str, pd.DataFrame]] = {}
+trades: Dict[str, Any] = {}
 tmp_path = "tmp/"
 
 
@@ -17,11 +15,16 @@ def read_csv_if_exists(file_path: str) -> Optional[pd.DataFrame]:
         return None
 
 
-def create_directory_if_not_exists(path: str) -> None:
-    Path(path).mkdir(parents=True, exist_ok=True)
+def create_directory_if_not_exists(dir_path: str) -> None:
+    Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def load_candlesticks(instrument: str, interval: str, binance_client: Optional[Any] = None, custom_tmp_path: Optional[str] = None):
+def load_candlesticks(
+    instrument: str,
+    interval: str,
+    binance_client: Optional[Any] = None,
+    custom_tmp_path: Optional[str] = None,
+):
     """
     Returns all candlesticks up until NOW and persists it to the csv.
     """
@@ -108,8 +111,8 @@ def add_candle(instrument: str, interval: str, new_candle: Dict):
     candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
         new_candle, ignore_index=True
     )
-    new_candle = candlesticks[instrument][interval].tail(0)
-    new_candle.to_csv(
+    new_candle_row = candlesticks[instrument][interval].tail(1)
+    new_candle_row.to_csv(
         f"{tmp_path}/data/binance/candlestick-{instrument}-{interval}.csv",
         mode="a",
         header=False,

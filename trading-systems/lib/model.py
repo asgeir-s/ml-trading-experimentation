@@ -3,7 +3,7 @@ import abc
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass  # type: ignore
 class Model(abc.ABC):
     @abc.abstractmethod
     def train(self, features: pd.DataFrame, target: pd.Series) -> None:
@@ -11,7 +11,10 @@ class Model(abc.ABC):
 
     @abc.abstractmethod
     def predict(self, df: pd.DataFrame) -> float:
-        """"The data frame should include data up until the datapont to be predicted. The returned value should be a number between -1 and 1. Where -1 means sell and 1 means buy. The closer to -1 or 1 the number is the more sure is the signal.
+        """"
+        The data frame should include data up until the datapont to be predicted.
+        The returned value should be a number between -1 and 1. Where -1 means sell
+        and 1 means buy. The closer to -1 or 1 the number is the more sure is the signal.
         """
 
     @abc.abstractmethod

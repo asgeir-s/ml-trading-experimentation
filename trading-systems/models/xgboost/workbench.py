@@ -1,5 +1,4 @@
-from model import XgboostBaseModel
-import pandas as pd
+from .model import XgboostBaseModel
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
 from lib.data_util import load_candlesticks
 

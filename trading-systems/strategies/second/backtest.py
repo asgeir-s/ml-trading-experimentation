@@ -7,12 +7,12 @@ from lib.charting import chartTrades
 def main():
     candlesticks = load_candlesticks("BTCUSDT", "1h")
 
-    trade_start_position = 18000
+    trade_start_position = 10000
     trade_end_position = len(candlesticks)
     features = Second.generate_features(candlesticks)
-    targets = Second._generate_target(features)
+    # targets = Second._generate_target(features)
 
-    features.to_csv("strategies/second/tmp/features.csv")
+    features[0].to_csv("strategies/second/tmp/features.csv")
 
     signals = Backtest.run(
         TradingStrategy=Second,
@@ -22,16 +22,18 @@ def main():
         end_position=trade_end_position,
     )
     # signals = Backtest._runWithTarget(
-    #    TradingStrategy=Second,
-    #    features=features,
-    #    target=targets,
-    #    candlesticks=candlesticks,
-    #    start_position=trade_start_position,
-    #    end_position=trade_end_position,
+    #   TradingStrategy=Second,
+    #   features=features,
+    #   target=targets,
+    #   candlesticks=candlesticks,
+    #   start_position=trade_start_position,
+    #   end_position=trade_end_position,
     # )
     signals.to_csv("strategies/second/tmp/signals.csv")
 
-    trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position, 0.001)
+    trades = Backtest.evaluate(
+        signals, candlesticks, trade_start_position, trade_end_position, 0.001
+    )
     trades.to_csv("strategies/second/tmp/trades.csv")
 
     chartTrades(

@@ -1,15 +1,14 @@
 import pandas as pd
 from lib.strategy import Strategy
-from functools import reduce
 from lib.tradingSignal import TradingSignal
-from typing import Optional
+from typing import Optional, Tuple, Type
 
 
 class Backtest:
     @staticmethod
     def run(
-        TradingStrategy: Strategy,
-        features: pd.DataFrame,
+        TradingStrategy: Type[Strategy],
+        features: Tuple[pd.DataFrame],
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
@@ -17,7 +16,7 @@ class Backtest:
         return Backtest._runWithTarget(
             TradingStrategy=TradingStrategy,
             features=features,
-            target=None,
+            targets=None,
             candlesticks=candlesticks,
             start_position=start_position,
             end_position=end_position,
@@ -25,28 +24,30 @@ class Backtest:
 
     @staticmethod
     def _runWithTarget(
-        TradingStrategy: Strategy,
-        features: pd.DataFrame,
-        target: Optional[pd.DataFrame],
+        TradingStrategy: Type[Strategy],
+        features: Tuple[pd.DataFrame, ...],
+        targets: Optional[Tuple[pd.Series]],
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
     ) -> pd.DataFrame:
         """Test trading the target, without prediction. To check if the target is good."""
-        init_features = features.iloc[:start_position]
+        init_features = tuple(map(lambda df: df.iloc[:start_position], features))
         strategy = TradingStrategy(init_features=init_features)
 
         trades = pd.DataFrame(columns=["transactTime", "signal", "price"])
         for position in range(start_position, end_position):
-            period_features = features.iloc[:position]
+            periode_features = tuple(map(lambda df: df.iloc[:position], features))
 
             # go to next candle
             signal = (
                 strategy.on_candlestick_with_features_and_perdictions(
-                    period_features, trades, [target.iloc[:position].tail(1).values[0]]
+                    periode_features,
+                    trades,
+                    list(map(lambda target: target.iloc[:position].tail(1).values[0], targets)),
                 )
-                if target is not None
-                else strategy.on_candlestick_with_features(period_features, trades)
+                if targets is not None
+                else strategy.on_candlestick_with_features(periode_features, trades)
             )
             if signal in (TradingSignal.BUY, TradingSignal.SELL):
                 period_candlesticks = candlesticks.iloc[:position]
@@ -56,10 +57,11 @@ class Backtest:
                     0
                 ]
                 trades = trades.append(
-                    {"transactTime": time, "signal": signal, "price": trade_price}, ignore_index=True,
+                    {"transactTime": time, "signal": signal, "price": trade_price},
+                    ignore_index=True,
                 )
                 # check if take profit or stop loss should be executed before getting next periode
-                if strategy.need_ticks(signal):
+                if strategy.need_ticks(signal) and strategy.stop_loss is not None:
                     NEXT_PERIOD_LOW: float = NEXT_PERIODE["low"].values[0]
                     if NEXT_PERIOD_LOW < strategy.stop_loss:
                         imagened_trade_price = strategy.stop_loss * 0.99  # slippage 1%
@@ -75,7 +77,7 @@ class Backtest:
                             )
             if position % 100 == 0:
                 print(
-                    f"Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"
+                    f"""Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"""  # noqa: E501
                 )
         return trades
 
@@ -125,10 +127,10 @@ class Backtest:
                 open_time = time
                 open_price = price
                 open_money = money
-                holding = (money-money*fee) / price
+                holding = (money - money * fee) / price
                 money = 0
             elif signal == TradingSignal.SELL:
-                money = (holding-holding*fee) * price
+                money = (holding - holding * fee) * price
                 holding = 0
                 trades = trades.append(
                     {

@@ -1,4 +1,6 @@
 from strategies.second.second import Second
+from lib.backtest import Backtest
+from lib.charting import chartTrades
 from lib import data_util
 from lib.live_runner import LiveRunner
 import pandas as pd

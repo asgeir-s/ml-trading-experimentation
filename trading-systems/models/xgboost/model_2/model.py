@@ -9,14 +9,14 @@ from dataclasses import dataclass
 @dataclass
 class XgboostModel2(XgboostBaseModel):
 
-    model: xgb.XGBRegressor = xgb.XGBRegressor(
-        objective="multi:softmax",
-        colsample_bytree=0.3,
-        learning_rate=0.1,
-        max_depth=12,
-        alpha=10,
-        n_estimators=20,
-        num_class=3,
+    model = xgb.XGBClassifier(  # type: ignore
+        objective="binary:logistic",
+        colsample_bytree=0.8613434432877689,
+        learning_rate=0.1747803828120286,
+        max_depth=8,
+        min_child_weight=1,
+        n_estimators=492,
+        subsample=0.5361675952749418,
     )
 
     @staticmethod
@@ -45,8 +45,8 @@ class XgboostModel2(XgboostBaseModel):
 
     @staticmethod
     def generate_target(df: pd.DataFrame):
-        up_treshold = 1.003
-        down_treshold = 1.001
+        up_treshold = 1
+        down_treshold = 1
         conditions = [
             (
                 df.shift(periods=-2)["trend_sma_fast"] / df.shift(periods=-1)["trend_sma_fast"]
@@ -56,7 +56,6 @@ class XgboostModel2(XgboostBaseModel):
                 df.shift(periods=-2)["trend_sma_fast"] / df.shift(periods=-1)["trend_sma_fast"]
                 < down_treshold
             ),
-            (df.shift(periods=-2)["open"] / df.shift(periods=-1)["open"] < 0.98),
         ]
-        choices = [2, 0, 0]
+        choices = [1, 0]
         return pd.Series(np.select(conditions, choices, default=1))

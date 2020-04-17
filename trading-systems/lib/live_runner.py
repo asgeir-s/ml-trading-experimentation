@@ -1,11 +1,8 @@
-import json
 from binance.client import Client
-from binance.enums import *
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from binance.websockets import BinanceSocketManager
 from lib.strategy import Strategy
 from lib.tradingSignal import TradingSignal
-import pandas as pd
 from lib import data_util
 import time
 from dataclasses import dataclass
@@ -21,28 +18,41 @@ class LiveRunner:
     strategy: Strategy
     binance_client: Client
 
-    tradingpair: Optional[str] = None
-    current_position: Optional[TradingSignal] = None
+    __current_position: Optional[TradingSignal] = None
     binance_socket_manager: Any = None
-    binance_client: Any = None
     binance_socket_connection_key: Optional[str] = None
 
+    @property
+    def tradingpair(self) -> str:
+        return self.asset + self.base_asset
+
+    @property
+    def current_position(self) -> TradingSignal:
+        if self.__current_position is not None:
+            return self.__current_position
+        else:
+            current_position = self.get_current_position(
+                self.binance_client, self.asset, self.base_asset
+            )
+            trades = data_util.load_trades(
+                instrument=self.tradingpair,
+                interval=self.candlestick_interval,
+                trading_strategy_instance_name=self.trading_strategy_instance_name,
+            )
+            last_trade_signal_saved = None if trades is None else trades.tail(1)
+            print(f"Last saved trade is: {last_trade_signal_saved}")
+            assert last_trade_signal_saved is None or (
+                last_trade_signal_saved["signal"].values[0] == str(self.current_position)
+            ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
+            self.__current_position = current_position
+            return self.__current_position
+
+    @property.setter  # noqa: F811
+    def current_position(self, new_position: TradingSignal):
+        self.__current_position = new_position
+
     def start(self) -> str:
-        self.tradingpair = self.asset + self.base_asset
         print(f"Tradingpair: {self.tradingpair}")
-        trades = data_util.load_trades(
-            instrument=self.tradingpair,
-            interval=self.candlestick_interval,
-            trading_strategy_instance_name=self.trading_strategy_instance_name,
-        )
-        self.current_position = self.get_current_position(
-            self.binance_client, self.asset, self.base_asset
-        )
-        last_trade_signal_saved = None if trades is None else trades.tail(1)
-        print(f"Last saved trade is: {last_trade_signal_saved}")
-        assert last_trade_signal_saved is None or (
-            last_trade_signal_saved["signal"].values[0] == str(self.current_position)
-        ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
         self.candlesticks = data_util.load_candlesticks(
             instrument=self.tradingpair,
             interval=self.candlestick_interval,
@@ -51,12 +61,14 @@ class LiveRunner:
         print(f"Current position is (last signal): {self.current_position}")
         self.binance_socket_manager = BinanceSocketManager(self.binance_client)
         # start any sockets here, i.e a trade socket
-        self.binance_socket_connection_key = self.binance_socket_manager.start_kline_socket(
+
+        connection_key = self.binance_socket_manager.start_kline_socket(
             self.tradingpair, self.process_message, interval=self.candlestick_interval,
         )
         # then start the socket manager
+        self.binance_socket_connection_key = connection_key
         self.binance_socket_manager.start()
-        return self.binance_socket_connection_key
+        return connection_key
 
     @staticmethod
     def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
@@ -83,7 +95,7 @@ class LiveRunner:
         else:
             candle_raw = msg["k"]
             current_close_price = candle_raw["c"]
-            if candle_raw["x"] == True:
+            if candle_raw["x"] is True:
                 self.candlesticks = data_util.add_candle(
                     instrument=self.tradingpair,
                     interval=self.candlestick_interval,
@@ -111,7 +123,7 @@ class LiveRunner:
         self, signal: TradingSignal, last_price: float,
     ):
         print(f"Placing new order: signal: {signal}")
-        order: Optional[Any] = None
+        order: Dict[str, Any]
         if signal == TradingSignal.BUY:
             money = self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
             quantity = float(money) / float(last_price) * 0.9995
@@ -120,15 +132,17 @@ class LiveRunner:
             order = self.binance_client.order_market_buy(symbol=self.tradingpair, quantity=quantity)
         elif signal == TradingSignal.SELL:
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
-            quantity = f"{quantity:.8f}"[:-2]  # make sure we round down
+            quantity_str = f"{quantity:.8f}"[:-2]  # make sure we round down
             print(f"ORDER: Market sell {quantity} of {self.tradingpair}")
             order = self.binance_client.order_market_sell(
-                symbol=self.tradingpair, quantity=quantity
+                symbol=self.tradingpair, quantity=quantity_str
             )
+
+        assert order is not None, "Order can not be none here."
 
         while order["status"] not in ("FILLED", "CANCELED", "REJECTED", "EXPIRED"):
             order = self.binance_client.get_order(symbol=self.tradingpair, orderId=order["orderId"])
-            print("ORDER status: " + order)
+            print("ORDER status: " + order["status"])
             time.sleep(2 * 60)
 
         if order["status"] == "FILLED":

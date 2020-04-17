@@ -15,8 +15,7 @@ def compute(df: pd.DataFrame, n_slow: int, n_fast: int, n_signal: int) -> pd.Dat
     return pd.DataFrame(
         {
             "trend_macd-" + prefix_name: indicator.macd(),
-            "trend_macd_diff-" +prefix_name: indicator.macd_diff(),
-            "trend_macd_signal-" +prefix_name: indicator.macd_signal(),
+            "trend_macd_diff-" + prefix_name: indicator.macd_diff(),
+            "trend_macd_signal-" + prefix_name: indicator.macd_signal(),
         }
     )
-

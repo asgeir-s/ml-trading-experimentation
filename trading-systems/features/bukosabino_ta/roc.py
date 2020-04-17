@@ -13,4 +13,4 @@ def compute(df: pd.DataFrame, n: int) -> pd.DataFrame:
 
     full_name = prefix + "_" + name + "-" + post_name
 
-    return pd.DataFrame({full_name: indicator.roc(),})
+    return pd.DataFrame({full_name: indicator.roc()})
