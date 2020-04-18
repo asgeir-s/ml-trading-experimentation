@@ -75,7 +75,7 @@ class Backtest:
                     ignore_index=True,
                 )
                 if signals_csv_path is not None:
-                    trades.tail(0).to_csv(signals_csv_path, header=False, mode="a")
+                    trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
                 # check if take profit or stop loss should be executed before getting next periode
                 if strategy.need_ticks(signal) and strategy.stop_loss is not None:
                     NEXT_PERIOD_LOW: float = NEXT_PERIODE["low"].values[0]
@@ -92,7 +92,7 @@ class Backtest:
                                 ignore_index=True,
                             )
                             if signals_csv_path is not None:
-                                trades.tail(0).to_csv(signals_csv_path, header=False, mode="a")
+                                trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
             if position % 100 == 0:
                 print(
                     f"""Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"""  # noqa:  E501
