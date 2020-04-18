@@ -12,10 +12,10 @@ from typing import List, Optional, Tuple
 class First(Strategy):
 
     init_features: InitVar[pd.DataFrame] = None
-    xgboost_novice: XgboostBaseModel = None
+    xgboost_sklien: XgboostBaseModel = None
 
     def __post_init__(self, init_features: Tuple[pd.DataFrame]) -> None:
-        self.xgboost_novice = XgboostBaseModel()
+        self.xgboost_sklien = XgboostBaseModel()
         self.__train(init_features)
 
     def on_candlestick_with_features(
@@ -26,7 +26,7 @@ class First(Strategy):
             self.__train(features)
             print("First Strategy - End retraining.")
 
-        prediction = self.xgboost_novice.predict(features)
+        prediction = self.xgboost_sklien.predict(features)
         return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
 
     def on_candlestick_with_features_and_perdictions(
@@ -63,7 +63,7 @@ class First(Strategy):
             _,
         ) = split_features_and_target_into_train_and_test_set(features[0], target[0], 0)
 
-        self.xgboost_novice.train(training_set_features, training_set_target)
+        self.xgboost_sklien.train(training_set_features, training_set_target)
 
     @staticmethod
     def _generate_target(features: Tuple[pd.DataFrame, ...]) -> Tuple[pd.Series, ...]:

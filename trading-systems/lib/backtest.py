@@ -1,53 +1,67 @@
 import pandas as pd
 from lib.strategy import Strategy
 from lib.tradingSignal import TradingSignal
-from typing import Optional, Tuple, Type
+from lib.data_util import create_directory_if_not_exists
+from typing import Optional, Tuple, Any, Dict
+from datetime import datetime
 
 
 class Backtest:
     @staticmethod
     def run(
-        TradingStrategy: Type[Strategy],
-        features: Tuple[pd.DataFrame],
+        strategy: Strategy,
+        features: pd.DataFrame,
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
+        signals_csv_path: Optional[str] = None,
     ) -> pd.DataFrame:
         return Backtest._runWithTarget(
-            TradingStrategy=TradingStrategy,
+            strategy=strategy,
             features=features,
             targets=None,
             candlesticks=candlesticks,
             start_position=start_position,
             end_position=end_position,
+            signals_csv_path=signals_csv_path,
         )
 
     @staticmethod
     def _runWithTarget(
-        TradingStrategy: Type[Strategy],
-        features: Tuple[pd.DataFrame, ...],
-        targets: Optional[Tuple[pd.Series]],
+        strategy: Strategy,
+        features: pd.DataFrame,
+        targets: Optional[Dict[Any, pd.Series]],
         candlesticks: pd.DataFrame,
         start_position: int,
         end_position: int,
+        signals_csv_path: Optional[str] = None,
     ) -> pd.DataFrame:
         """Test trading the target, without prediction. To check if the target is good."""
-        init_features = tuple(map(lambda df: df.iloc[:start_position], features))
-        strategy = TradingStrategy(init_features=init_features)
+        if signals_csv_path is not None:
+            print("Signals will be written continuasly to: " + signals_csv_path)
+        init_features = features.iloc[:start_position]
+        init_candlesticks = candlesticks.iloc[:start_position]
+        strategy.init(candlesticks=init_candlesticks, features=init_features)
 
         trades = pd.DataFrame(columns=["transactTime", "signal", "price"])
+        if signals_csv_path is not None:
+            trades.to_csv(signals_csv_path)
         for position in range(start_position, end_position):
-            periode_features = tuple(map(lambda df: df.iloc[:position], features))
+            period_features = features.iloc[:position]
+            period_candlesticks = candlesticks.iloc[:position]
 
             # go to next candle
             signal = (
                 strategy.on_candlestick_with_features_and_perdictions(
-                    periode_features,
-                    trades,
-                    list(map(lambda target: target.iloc[:position].tail(1).values[0], targets)),
+                    candlesticks=period_candlesticks,
+                    features=period_features,
+                    trades=trades,
+                    predictions={key: df[:position] for key, df in targets.items()},
                 )
                 if targets is not None
-                else strategy.on_candlestick_with_features(periode_features, trades)
+                else strategy.on_candlestick_with_features(
+                    candlesticks=period_candlesticks, features=period_features, trades=trades
+                )
             )
             if signal in (TradingSignal.BUY, TradingSignal.SELL):
                 period_candlesticks = candlesticks.iloc[:position]
@@ -60,6 +74,8 @@ class Backtest:
                     {"transactTime": time, "signal": signal, "price": trade_price},
                     ignore_index=True,
                 )
+                if signals_csv_path is not None:
+                    trades.tail(0).to_csv(signals_csv_path, header=False, mode="a")
                 # check if take profit or stop loss should be executed before getting next periode
                 if strategy.need_ticks(signal) and strategy.stop_loss is not None:
                     NEXT_PERIOD_LOW: float = NEXT_PERIODE["low"].values[0]
@@ -75,9 +91,11 @@ class Backtest:
                                 {"transactTime": time, "signal": signal, "price": trade_price},
                                 ignore_index=True,
                             )
+                            if signals_csv_path is not None:
+                                trades.tail(0).to_csv(signals_csv_path, header=False, mode="a")
             if position % 100 == 0:
                 print(
-                    f"""Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"""  # noqa: E501
+                    f"""Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"""  # noqa:  E501
                 )
         return trades
 
@@ -158,3 +176,10 @@ class Backtest:
         print(f"Percentage price change in period: {round(percentage_price_change_in_period,2)}%")
 
         return trades
+
+
+def set_up_strategy_tmp_path(strategy_dir: str) -> str:
+    print("strategy_dir: " + strategy_dir)
+    new_dir = strategy_dir + "/tmp/" + datetime.today().strftime("%Y-%m-%d-%H:%M:%S") + "/"
+    create_directory_if_not_exists(new_dir)
+    return new_dir

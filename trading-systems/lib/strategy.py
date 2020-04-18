@@ -2,31 +2,64 @@ import pandas as pd
 import abc
 from dataclasses import dataclass
 from lib.tradingSignal import TradingSignal
-from typing import List, Optional, Any, Tuple
-from dataclasses import InitVar
+from typing import Optional, Any, Tuple, Dict
+from lib.model import Model
+from lib.data_splitter import split_features_and_target_into_train_and_test_set
 
 
 @dataclass  # type: ignore
 class Strategy(abc.ABC):
     stop_loss: Optional[float] = None
-    init_features: InitVar[Tuple[pd.DataFrame, ...]] = None
+    models: Tuple[Model, ...] = ()
+
+    @abc.abstractmethod
+    def __post_init__(self) -> None:
+        """
+        The models should be initiated here.
+        """
+
+    def init(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> None:
+        """
+        Should be called when sitting up a strategy.
+        """
+        self.__train(candlesticks, features)
 
     def on_candlestick(
         self, candlesticks: pd.DataFrame, trades: pd.DataFrame
     ) -> Optional[TradingSignal]:
         """All or a window of candlesticks up until the newest (.tail(1)) and all earlyer signals."""
         features = self.generate_features(candlesticks)
-        return self.on_candlestick_with_features(features, trades)
+        return self.on_candlestick_with_features(candlesticks, features, trades)
 
-    @abc.abstractmethod
     def on_candlestick_with_features(
-        self, features: Tuple[pd.DataFrame, ...], trades: pd.DataFrame
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame
     ) -> Optional[TradingSignal]:
-        """Called with precomputed features."""
+        """
+        It calls the __train method every 100th execution.
+
+        It also calls predict on every model and calls on_candlestick_with_features_and_perdictions with the
+        predictions.
+        """
+        if len(features) % 100 == 0:
+            print("Strategy - Start retraining.")
+            self.__train(candlesticks, features)
+            print("Strategy - End retraining.")
+
+        predictions = {}
+        for model in self.models:
+            predictions[model] = model.predict(candlesticks, features)
+
+        return self.on_candlestick_with_features_and_perdictions(
+            candlesticks, features, trades, predictions
+        )
 
     @abc.abstractmethod
     def on_candlestick_with_features_and_perdictions(
-        self, features: Tuple[pd.DataFrame, ...], signals: pd.DataFrame, predictions: List[float],
+        self,
+        candlesticks: pd.DataFrame,
+        features: pd.DataFrame,
+        trades: pd.DataFrame,
+        predictions: Dict[Any, float],
     ) -> Optional[TradingSignal]:
         """
         (mostly) Internal method for calling with the features and the predictions.
@@ -55,26 +88,6 @@ class Strategy(abc.ABC):
         return last_signal == TradingSignal.BUY and self.stop_loss is not None
 
     @staticmethod
-    @abc.abstractmethod
-    def generate_features(candlesticks: pd.DataFrame) -> Tuple[pd.DataFrame, ...]:
-        """
-        Should return a dataframe containing all features needed by this strategy (for all its models etc.).
-        """
-
-    def __train(self, features: Tuple[pd.DataFrame, ...]):
-        """
-        Train all models etc. that needs training.
-        """
-
-    @staticmethod
-    @abc.abstractmethod
-    def _generate_target(features: Tuple[pd.DataFrame, ...]) -> Tuple[pd.Series, ...]:
-        """
-        Internal method used genrate features for models used by the strategy. Can be used fro outside for backtesting
-        (raw) target (CHEATING).
-        """
-
-    @staticmethod
     def get_last_trade(
         trades: pd.DataFrame,
     ) -> Tuple[Optional[Any], Optional[TradingSignal], Optional[float]]:
@@ -86,3 +99,40 @@ class Strategy(abc.ABC):
             signal = last["signal"].values[0]
             price = last["price"].values[0]
             return time, signal, price
+
+    def generate_features(self, candlesticks: pd.DataFrame) -> pd.DataFrame:
+        """Should return a dataframe containing all features needed by this strategy (for all its models etc)"""
+        features = pd.DataFrame(index=candlesticks.index)
+        for model in self.models:
+            features = model.generate_features(candlesticks, features)
+
+        return features
+
+    def __train(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> None:
+        """
+        Train all models etc. that needs training.
+        """
+        targets = self._generate_targets(candlesticks, features)
+        (
+            training_set_features,
+            training_set_targets,
+            _,
+            _,
+        ) = split_features_and_target_into_train_and_test_set(features, targets, 0)
+
+        for model in self.models:
+            model.train(training_set_features, training_set_targets[model])
+
+    def _generate_targets(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> Dict[Any, pd.Series]:
+        """
+        Internal method used genrate features for models used by the strategy. Can be used fro outside for backtesting
+        (raw) target (CHEATING).
+        """
+        targets = {}
+
+        for model in self.models:
+            targets[model] = model.generate_target(candlesticks, features)
+
+        return targets

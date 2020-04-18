@@ -13,28 +13,29 @@ from sklearn.model_selection._validation import cross_val_score
 @dataclass
 class XgboostBaseModel(Model):
 
-    model = xgb.XGBRegressor(  # type: ignore
-        objective="multi:softmax",
-        colsample_bytree=0.3,
-        learning_rate=1,
-        max_depth=12,
-        alpha=5,
-        n_estimators=10,
-        num_class=3,
-    )
+    def __post_init__(self) -> None:
+        self.model = xgb.XGBRegressor(  # type: ignore
+            objective="multi:softmax",
+            colsample_bytree=0.3,
+            learning_rate=1,
+            max_depth=12,
+            alpha=5,
+            n_estimators=10,
+            num_class=3,
+        )
 
     def train(self, features: pd.DataFrame, target: pd.Series):
         self.model.fit(features, target)
 
-    def predict(self, df: pd.DataFrame):
-        prediction = self.model.predict(df.tail(1))[0]
+    def predict(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> float:
+        prediction = self.model.predict(features.tail(1))[0]
         return prediction
 
     def predict_dataframe(self, df: pd.DataFrame):
         print(
             """Warning: using predict_dataframe (only meant for use in evaluation). This will predict all rows in the
             dataframe."""
-            )
+        )
         prediction = self.model.predict(df)
         return prediction
 
@@ -59,16 +60,30 @@ class XgboostBaseModel(Model):
         plt.show()
 
     @staticmethod
-    def generate_features(df: pd.DataFrame):
-        return default_features.createFeatures(df.drop(columns=["open time", "close time"]))
+    def generate_features(
+        candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+    ) -> pd.DataFrame:
+        features = default_features.compute(
+            candlesticks.drop(columns=["open time", "close time"]), features_already_computed
+        )
+        return features
 
     @staticmethod
-    def generate_target(df: pd.DataFrame):
+    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
         up_treshold = 1.02
         down_treshold = 1
         conditions = [
-            (df.shift(periods=-2)["open"] / df.shift(periods=-1)["open"] > up_treshold),
-            (df.shift(periods=-2)["open"] / df.shift(periods=1)["open"] < down_treshold),
+            (
+                candlesticks.shift(periods=-2)["open"] / candlesticks.shift(periods=-1)["open"]
+                > up_treshold
+            ),
+            (
+                candlesticks.shift(periods=-2)["open"] / candlesticks.shift(periods=1)["open"]
+                < down_treshold
+            ),
         ]
         choices = [2, 0]
         return pd.Series(np.select(conditions, choices, default=1))
+
+    def __hash__(self) -> int:
+        return hash(self.__class__.__name__) + hash(self.model)
