@@ -106,3 +106,6 @@ class RegressionSklienModel(XgboostBaseModel):
         ].sum(axis=1)
 
         return res["target"]
+
+    def __hash__(self) -> int:
+        return hash(self.__class__.__name__) + hash(self.model)

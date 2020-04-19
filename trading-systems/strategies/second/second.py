@@ -21,16 +21,7 @@ class Second(Strategy):
         last_time, last_signal, last_price = self.get_last_trade(trades)
         if last_signal is None:
             last_signal = TradingSignal.SELL
-
-        """         print("last signal:")
-        print(last_signal)
-        print("predictions:")
-        print(predictions)
-        print("this model:")
-        print(self.models[0])
-        print("this prediction:")
-        print(predictions[self.models[0]]) """
-
+        
         signal: Optional[TradingSignal] = None
         if last_signal == TradingSignal.SELL and predictions[self.models[0]] == 1:
             current_price = features.tail(1)["close"].values[0]

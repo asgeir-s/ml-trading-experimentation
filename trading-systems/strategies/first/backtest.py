@@ -1,46 +1,60 @@
 from strategies.first.first import First
 from lib.data_util import load_candlesticks
-from lib.backtest import Backtest
+from lib.backtest import Backtest, set_up_strategy_tmp_path
 from lib.charting import chartTrades
+import pathlib
+import pandas as pd
+
+
+strategy_tmp_path = set_up_strategy_tmp_path(
+    strategy_dir=str(pathlib.Path(__file__).parent.absolute())
+)
 
 
 def main():
     candlesticks = load_candlesticks("BTCUSDT", "1h")
 
-    trade_start_position = 10000
+    trade_start_position = 18000
     trade_end_position = len(candlesticks)
-    features = First.generate_features(candlesticks)
-    targets = First._generate_target(features)
 
-    #    signals = Backtest.run(
-    #        TradingStrategy=First,
-    #        features=features,
-    #        candlesticks=candlesticks,
-    #        shorter_candlesticks=None,
-    #        start_position=trade_start_position,
-    #        end_position=trade_end_position,
-    #    )
-    signals = Backtest._runWithTarget(
-        TradingStrategy=First,
+    strategy = First()
+
+    features = strategy.generate_features(candlesticks)
+    targets = strategy._generate_targets(candlesticks, features)
+
+    features.to_csv(strategy_tmp_path + "features.csv")
+
+    pd.DataFrame(targets).to_csv(strategy_tmp_path + "targets.csv")
+
+    signals = Backtest.run(
+        strategy=strategy,
         features=features,
-        targets=targets,
         candlesticks=candlesticks,
         start_position=trade_start_position,
         end_position=trade_end_position,
+        signals_csv_path=strategy_tmp_path + "signals.csv",
     )
-    signals.to_csv("strategies/first/tmp/signals.csv")
+    # signals = Backtest._runWithTarget(
+    #     targets=targets,
+    #     strategy=strategy,
+    #     features=features,
+    #     candlesticks=candlesticks,
+    #     start_position=trade_start_position,
+    #     end_position=trade_end_position,
+    #     signals_csv_path=strategy_tmp_path + "signals.csv",
+    # )
 
     trades = Backtest.evaluate(
         signals, candlesticks, trade_start_position, trade_end_position, 0.001
     )
-    trades.to_csv("strategies/first/tmp/trades.csv")
+    trades.to_csv(strategy_tmp_path + "trades.csv")
 
     chartTrades(
         trades,
         candlesticks,
         trade_start_position,
         trade_end_position,
-        "strategies/first/tmp/chart.html",
+        strategy_tmp_path + "chart.html",
     )
 
 

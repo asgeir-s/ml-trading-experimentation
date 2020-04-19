@@ -1,11 +1,13 @@
 from strategies.third.third import Third
 from lib.data_util import load_candlesticks, create_directory_if_not_exists
-from lib.backtest import Backtest
+from lib.backtest import Backtest, set_up_strategy_tmp_path
 from lib.charting import chartTrades
 import pandas as pd
-from datetime import datetime
+import pathlib
 
-strategy_tmp_path = "strategies/third/tmp/" + datetime.today().strftime("%Y-%m-%d-%H:%M:%S") + "/"
+strategy_tmp_path = set_up_strategy_tmp_path(
+    strategy_dir=str(pathlib.Path(__file__).parent.absolute())
+)
 
 
 def main():
@@ -22,37 +24,36 @@ def main():
 
     # features.to_csv(strategy_tmp_path + "/features.csv")
 
-    pd.DataFrame(targets).to_csv(
-        strategy_tmp_path + "targets.csv"
-    )
-    signals = Backtest.run(
+    pd.DataFrame(targets).to_csv(strategy_tmp_path + "targets.csv")
+    """     signals = Backtest.run(
         strategy=strategy,
         features=features,
         candlesticks=candlesticks,
         start_position=trade_start_position,
         end_position=trade_end_position,
-        signals_csv_path=strategy_tmp_path + "/signals.csv"
+        signals_csv_path=strategy_tmp_path + "signals.csv"
+    ) """
+    signals = Backtest._runWithTarget(
+        strategy=strategy,
+        features=features,
+        targets=targets,
+        candlesticks=candlesticks,
+        start_position=trade_start_position,
+        end_position=trade_end_position,
+        signals_csv_path=strategy_tmp_path + "signals.csv",
     )
-    # signals = Backtest._runWithTarget(
-    #    TradingStrategy=Third,
-    #    features=features,
-    #    target=targets,
-    #    candlesticks=candlesticks,
-    #    start_position=trade_start_position,
-    #    end_position=trade_end_position,
-    # )
 
     trades = Backtest.evaluate(
         signals, candlesticks, trade_start_position, trade_end_position, 0.001
     )
-    trades.to_csv(strategy_tmp_path + "/trades.csv")
+    trades.to_csv(strategy_tmp_path + "trades.csv")
 
     chartTrades(
         trades,
         candlesticks,
         trade_start_position,
         trade_end_position,
-        strategy_tmp_path + "/chart.html",
+        strategy_tmp_path + "chart.html",
     )
 
 

@@ -3,6 +3,7 @@
     "python.dataScience.jupyterServerURI": "local",
     "cSpell.words": [
         "BTCUSDT",
+        "CUDF",
         "MACD",
         "Sklien",
         "USDT",
@@ -11,13 +12,16 @@
         "bytree",
         "cummulative",
         "fillna",
+        "ichimoku",
         "iloc",
         "iterrows",
         "kfold",
         "klines",
         "noqa",
+        "pylint",
         "pyplot",
         "rmse",
-        "sklearn"
+        "sklearn",
+        "strftime"
     ]
 }

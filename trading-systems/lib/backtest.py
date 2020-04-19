@@ -2,7 +2,7 @@ import pandas as pd
 from lib.strategy import Strategy
 from lib.tradingSignal import TradingSignal
 from lib.data_util import create_directory_if_not_exists
-from typing import Optional, Tuple, Any, Dict
+from typing import Optional, Any, Dict
 from datetime import datetime
 
 
@@ -56,7 +56,9 @@ class Backtest:
                     candlesticks=period_candlesticks,
                     features=period_features,
                     trades=trades,
-                    predictions={key: df[:position] for key, df in targets.items()},
+                    predictions={
+                        key: series[:position].tail(1).values[0] for key, series in targets.items()
+                    },
                 )
                 if targets is not None
                 else strategy.on_candlestick_with_features(

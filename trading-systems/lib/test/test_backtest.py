@@ -2,10 +2,9 @@ from lib.backtest import Backtest
 import pandas as pd
 import numpy as np
 from lib.strategy import Strategy
-from dataclasses import InitVar
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Optional, Dict, Any
 
 data = [
     [0, 100, 110, 90, 100, 50, 2, 200, 200, 44, 400],
@@ -41,73 +40,84 @@ candlesticks = pd.DataFrame(
 
 @dataclass  # typing: ignore
 class TestStrategy(Strategy):
-    init_features: InitVar[pd.DataFrame] = None
-
-    def __post_init__(self, init_features: pd.DataFrame) -> None:
+    def __post_init__(self) -> None:
         pass
 
-    def on_candlestick(self, candlesticks: pd.DataFrame, trades: pd.DataFrame) -> Optional[TradingSignal]:
-        features = self.generate_features(candlesticks)
-        return self.on_candlestick_with_features(features, trades)
-
     def on_candlestick_with_features(
-        self, features: pd.DataFrame, signals: pd.DataFrame
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame
     ) -> Optional[TradingSignal]:
         prediction = (
-            1
+            1.0
             if features.tail(1)["close"].values[0] > 100
-            else -1
+            else -1.0
             if features.tail(1)["close"].values[0] < 100
             else 0
         )
-        return self.on_candlestick_with_features_and_perdictions(features, signals, [prediction])
+        print("pred: " + str(prediction))
+        return self.on_candlestick_with_features_and_perdictions(
+            candlesticks=candlesticks,
+            features=features,
+            trades=trades,
+            predictions={0: float(prediction)},
+        )
 
     def on_candlestick_with_features_and_perdictions(
-        self, features: pd.DataFrame, signals: pd.DataFrame, predictions: List[float]
+        self,
+        candlesticks: pd.DataFrame,
+        features: pd.DataFrame,
+        trades: pd.DataFrame,
+        predictions: Dict[Any, float],
     ) -> Optional[TradingSignal]:
-        print(predictions)
-        last_signal = (
-            TradingSignal.SELL if len(signals) == 0 else signals.tail(1)["signal"].values[0]
-        )
-        signal: Optional[TradingSignal]
-        if predictions[0] == 1 and last_signal == TradingSignal.SELL:
+        print("predictions:")
+        prediction = int(predictions[0])
+        print(prediction)
+        last_time, last_signal, last_price = self.get_last_trade(trades)
+        if last_signal is None:
+            last_signal = TradingSignal.SELL
+        signal: Optional[TradingSignal] = None
+        if prediction == 1 and last_signal == TradingSignal.SELL:
             signal = TradingSignal.BUY
-        elif predictions[0] == -1 and last_signal == TradingSignal.BUY:
+        elif prediction == -1 and last_signal == TradingSignal.BUY:
             signal = TradingSignal.SELL
         return signal
 
-    @staticmethod
-    def generate_features(candlesticks: pd.DataFrame) -> Tuple[pd.DataFrame, ...]:
-        return (candlesticks[["open", "close"]], )
+    def generate_features(self, candlesticks: pd.DataFrame) -> pd.DataFrame:
+        return candlesticks[["open", "close"]]
 
     def __train(self, features: pd.DataFrame):
         pass
 
-    @staticmethod
-    def _generate_target(features: Tuple[pd.DataFrame, ...]) -> Tuple[pd.Series]:
+    def _generate_targets(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> Dict[Any, pd.Series]:
         up_treshold = 100
         down_treshold = 100
 
-        features_0 = features[0]
         conditions = [
-            features_0["close"] > up_treshold,
-            features_0["close"] < down_treshold,
+            features["close"] > up_treshold,
+            features["close"] < down_treshold,
         ]
         choices = [1, -1]
-        return (pd.Series(np.select(conditions, choices, default=0)), )
+        return {0: pd.Series(np.select(conditions, choices, default=0))}
 
 
 def test_backtest():
-    features = TestStrategy.generate_features(candlesticks)
-    targets = TestStrategy._generate_target(features)
+    strategy = TestStrategy()
+    features = strategy.generate_features(candlesticks)
+    targets = strategy._generate_targets(candlesticks, features)
 
-    assert len(features) == len(targets), "features and target has the same length"
+    assert len(features) == len(targets[0]), "features and target has the same length"
 
     trade_start_position = 1
     trade_end_position = len(features)
 
     signals = Backtest._runWithTarget(
-        TestStrategy, features, targets, candlesticks, trade_start_position, trade_end_position
+        strategy=strategy,
+        features=features,
+        targets=targets,
+        candlesticks=candlesticks,
+        start_position=trade_start_position,
+        end_position=trade_end_position,
     )
 
     print(signals)

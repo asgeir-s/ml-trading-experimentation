@@ -21,6 +21,8 @@ class Model(abc.ABC):
     @abc.abstractmethod
     def predict(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> float:
         """"
+        Only the prediction for the last row is returned.
+
         The data frame should include data up until the datapont to be predicted.
         The returned value should be a number between -1 and 1. Where -1 means sell
         and 1 means buy. The closer to -1 or 1 the number is the more sure is the signal.
@@ -39,7 +41,7 @@ class Model(abc.ABC):
     def generate_features(
         candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
     ) -> pd.DataFrame:
-        """Given a dataframe with the candlestick data and the features that are already computed,it 
+        """Given a dataframe with the candlestick data and the features that are already computed,it
         should add any new features to the features_already_computed DataFrame and return it."""
 
     @staticmethod

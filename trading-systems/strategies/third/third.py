@@ -33,7 +33,7 @@ class Third(Strategy):
             and sklien_prediction > 1.5
             and up_down_model_prediction == 1
         ):
-            current_price = features[0].tail(1)["close"].values[0]
+            current_price = features.tail(1)["close"].values[0]
             self.stop_loss = current_price * 0.95
             signal = TradingSignal.BUY
         elif (

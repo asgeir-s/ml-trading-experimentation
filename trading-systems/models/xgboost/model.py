@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from lib.model import Model
-from features.bukosabino_ta import default_features
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection._validation import cross_val_score
+from features.bukosabino_ta import roc, macd, default_features
 
 
 @dataclass
@@ -66,6 +66,19 @@ class XgboostBaseModel(Model):
         features = default_features.compute(
             candlesticks.drop(columns=["open time", "close time"]), features_already_computed
         )
+        features = macd.compute(candlesticks, features, 100, 30, 20)
+        features = macd.compute(candlesticks, features, 300, 100, 50)
+        features = macd.compute(candlesticks, features, 15, 5, 3)
+        features = roc.compute(candlesticks, features, 2)
+        features = roc.compute(candlesticks, features, 3)
+        features = roc.compute(candlesticks, features, 3)
+        features = roc.compute(candlesticks, features, 5)
+        features = roc.compute(candlesticks, features, 10)
+        features = roc.compute(candlesticks, features, 15)
+        features = roc.compute(candlesticks, features, 20)
+        features = roc.compute(candlesticks, features, 30)
+        features = roc.compute(candlesticks, features, 50)
+        features = roc.compute(candlesticks, features, 80)
         return features
 
     @staticmethod
