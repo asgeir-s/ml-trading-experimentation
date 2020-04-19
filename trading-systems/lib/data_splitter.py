@@ -14,12 +14,12 @@ def split_features_and_target_into_train_and_test_set(
 
     training_set_features = features.iloc[:training_set_size]
     training_set_targets = {}
-    for key in targets:
-        training_set_targets[key] = targets[key][:training_set_size]
+    for key, series in targets.items():
+        training_set_targets[key] = series[:training_set_size]
 
     test_set_features = features.iloc[training_set_size: len(features)]
     test_set_targets = {}
-    for key in targets:
-        test_set_targets[key] = targets[key][training_set_size: len(features)]
+    for key, series in targets.items():
+        test_set_targets[key] = series[training_set_size: len(features)]
 
     return training_set_features, training_set_targets, test_set_features, test_set_targets

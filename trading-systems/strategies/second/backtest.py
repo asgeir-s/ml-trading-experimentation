@@ -25,23 +25,23 @@ def main():
 
     pd.DataFrame(targets).to_csv(strategy_tmp_path + "targets.csv")
 
-    # signals = Backtest.run(
-    #     strategy=strategy,
-    #     features=features,
-    #     candlesticks=candlesticks,
-    #     start_position=trade_start_position,
-    #     end_position=trade_end_position,
-    #     signals_csv_path=strategy_tmp_path + "/signals.csv"
-    # )
-    signals = Backtest._runWithTarget(
+    signals = Backtest.run(
         strategy=strategy,
         features=features,
-        targets=targets,
         candlesticks=candlesticks,
         start_position=trade_start_position,
         end_position=trade_end_position,
-        signals_csv_path=strategy_tmp_path + "signals.csv",
+        signals_csv_path=strategy_tmp_path + "/signals.csv"
     )
+    # signals = Backtest._runWithTarget(
+    #     strategy=strategy,
+    #     features=features,
+    #     targets=targets,
+    #     candlesticks=candlesticks,
+    #     start_position=trade_start_position,
+    #     end_position=trade_end_position,
+    #     signals_csv_path=strategy_tmp_path + "signals.csv",
+    # )
 
     trades = Backtest.evaluate(
         signals, candlesticks, trade_start_position, trade_end_position, 0.001
