@@ -72,10 +72,9 @@ class Backtest:
                 time = pd.to_datetime(period_candlesticks["close time"].tail(1), unit="ms").values[
                     0
                 ]
-                trades = trades.append(
-                    {"transactTime": time, "signal": signal, "price": trade_price},
-                    ignore_index=True,
-                )
+                trad = {"transactTime": time, "signal": signal, "price": trade_price}
+                trades = trades.append(trad, ignore_index=True,)
+                print(trad)
                 if signals_csv_path is not None:
                     trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
                 # check if take profit or stop loss should be executed before getting next periode
@@ -89,10 +88,9 @@ class Backtest:
                             print(
                                 f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
                             )
-                            trades = trades.append(
-                                {"transactTime": time, "signal": signal, "price": trade_price},
-                                ignore_index=True,
-                            )
+                            trad = {"transactTime": time, "signal": signal, "price": trade_price}
+                            trades = trades.append(trad, ignore_index=True,)
+                            print(trad)
                             if signals_csv_path is not None:
                                 trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
             if position % 100 == 0:
