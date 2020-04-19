@@ -23,13 +23,13 @@ def load_candlesticks(
     instrument: str,
     interval: str,
     binance_client: Optional[Any] = None,
-    custom_tmp_path: Optional[str] = None,
+    custom_data_path: Optional[str] = None,
 ):
     """
     Returns all candlesticks up until NOW and persists it to the csv.
     """
-    if custom_tmp_path is not None:
-        tmp_path = custom_tmp_path
+    if custom_data_path is not None:
+        tmp_path = custom_data_path
     else:
         tmp_path = "tmp/"
 
