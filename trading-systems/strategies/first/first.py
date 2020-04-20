@@ -3,7 +3,7 @@ import pandas as pd
 from models.xgboost.model import XgboostBaseModel
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 
 
 @dataclass
@@ -17,16 +17,16 @@ class First(Strategy):
         features: pd.DataFrame,
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
-    ) -> Optional[TradingSignal]:
+    ) -> Optional[Tuple[TradingSignal, str]]:
         last_time, last_signal, last_price = self.get_last_trade(trades)
         if last_signal is None:
             last_signal = TradingSignal.SELL
         prediction = predictions[self.models[0]]
 
-        signal: Optional[TradingSignal] = None
+        signal: Optional[Tuple[TradingSignal, str]] = None
 
         if last_signal == TradingSignal.SELL and prediction > 1.5:
-            signal = TradingSignal.BUY
+            signal = (TradingSignal.BUY, "The boos model predicts up")
         elif last_signal == TradingSignal.BUY and prediction < 0.5:
-            signal = TradingSignal.SELL
+            signal = (TradingSignal.SELL, "the boost model predicts down")
         return signal

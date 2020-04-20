@@ -26,14 +26,14 @@ class Strategy(abc.ABC):
 
     def on_candlestick(
         self, candlesticks: pd.DataFrame, trades: pd.DataFrame
-    ) -> Optional[TradingSignal]:
+    ) -> Optional[Tuple[TradingSignal, str]]:
         """All or a window of candlesticks up until the newest (.tail(1)) and all earlyer signals."""
         features = self.generate_features(candlesticks)
         return self.on_candlestick_with_features(candlesticks, features, trades)
 
     def on_candlestick_with_features(
         self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame
-    ) -> Optional[TradingSignal]:
+    ) -> Optional[Tuple[TradingSignal, str]]:
         """
         It calls the __train method every 100th execution.
 
@@ -60,13 +60,13 @@ class Strategy(abc.ABC):
         features: pd.DataFrame,
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
-    ) -> Optional[TradingSignal]:
+    ) -> Optional[Tuple[TradingSignal, str]]:
         """
         (mostly) Internal method for calling with the features and the predictions.
         Can be used from outside for testing targets.
         """
 
-    def on_tick(self, price: float, last_signal: TradingSignal) -> Optional[TradingSignal]:
+    def on_tick(self, price: float, last_signal: TradingSignal) -> Optional[Tuple[TradingSignal, str]]:
         """
         Checks if the stoploss should be executed. Should be called on every tick in live mode.
         Be carful overriding this as it will not be possible to backtest when it is changed.
@@ -76,7 +76,7 @@ class Strategy(abc.ABC):
             and last_signal == TradingSignal.BUY
             and price <= self.stop_loss
         ):
-            return TradingSignal.SELL
+            return (TradingSignal.SELL, f"Stop loss: price ({price}) is below stop loss ({self.stop_loss})")
         else:
             return None
 

@@ -43,7 +43,8 @@ class Backtest:
         init_candlesticks = candlesticks.iloc[:start_position]
         strategy.init(candlesticks=init_candlesticks, features=init_features)
 
-        trades = pd.DataFrame(columns=["transactTime", "signal", "price"])
+        trades = pd.DataFrame(columns=["transactTime", "signal", "price", "reason"])
+        last_signal: TradingSignal = TradingSignal.SELL
         if signals_csv_path is not None:
             trades.to_csv(signals_csv_path)
         for position in range(start_position, end_position):
@@ -51,7 +52,7 @@ class Backtest:
             period_candlesticks = candlesticks.iloc[:position]
 
             # go to next candle
-            signal = (
+            signal_tuple = (
                 strategy.on_candlestick_with_features_and_perdictions(
                     candlesticks=period_candlesticks,
                     features=period_features,
@@ -65,37 +66,59 @@ class Backtest:
                     candlesticks=period_candlesticks, features=period_features, trades=trades
                 )
             )
-            if signal in (TradingSignal.BUY, TradingSignal.SELL):
+            NEXT_PERIODE = candlesticks.iloc[: position + 1].tail(1)
+            if signal_tuple is not None and signal_tuple[0] in (
+                TradingSignal.BUY,
+                TradingSignal.SELL,
+            ):
                 period_candlesticks = candlesticks.iloc[:position]
-                NEXT_PERIODE = candlesticks.iloc[: position + 1].tail(1)
                 trade_price = NEXT_PERIODE["open"].values[0]
-                time = pd.to_datetime(period_candlesticks["close time"].tail(1), unit="ms").values[
-                    0
-                ]
-                trad = {"transactTime": time, "signal": signal, "price": trade_price}
+                time = pd.to_datetime(NEXT_PERIODE["open time"], unit="ms").values[0]
+                trad = {
+                    "transactTime": time,
+                    "signal": signal_tuple[0],
+                    "price": trade_price,
+                    "reason": signal_tuple[1],
+                }
                 trades = trades.append(trad, ignore_index=True,)
+                last_signal = signal_tuple[0]
                 print(trad)
                 if signals_csv_path is not None:
                     trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
-                # check if take profit or stop loss should be executed before getting next periode
-                if strategy.need_ticks(signal) and strategy.stop_loss is not None:
-                    NEXT_PERIOD_LOW: float = NEXT_PERIODE["low"].values[0]
-                    if NEXT_PERIOD_LOW < strategy.stop_loss:
-                        imagened_trade_price = strategy.stop_loss * 0.99  # slippage 1%
-                        signal = strategy.on_tick(imagened_trade_price, signal)
+            # check if take profit or stop loss should be executed before getting next periode
+            if (
+                last_signal == TradingSignal.BUY
+                and strategy.need_ticks(last_signal)
+                and strategy.stop_loss is not None
+            ):
+                NEXT_PERIOD_LOW: float = NEXT_PERIODE["low"].values[0]
+                # print("checks stoploss")
+                # print("NEXT_PERIOD_LOW: " + str(NEXT_PERIOD_LOW))
+                # print("Strategy stoploss: " + str(strategy.stop_loss))
+                if NEXT_PERIOD_LOW < strategy.stop_loss:
+                    imagened_trade_price = strategy.stop_loss * 0.99  # slippage 1%
+                    signal_tuple = strategy.on_tick(imagened_trade_price, last_signal)
+                    time = pd.to_datetime(NEXT_PERIODE["close time"], unit="ms").values[0]
 
-                        if signal is not None:
-                            print(
-                                f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
-                            )
-                            trad = {"transactTime": time, "signal": signal, "price": trade_price}
-                            trades = trades.append(trad, ignore_index=True,)
-                            print(trad)
-                            if signals_csv_path is not None:
-                                trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
+                    if signal_tuple is not None:
+                        print(
+                            f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
+                        )
+                        trad = {
+                            "transactTime": time,
+                            "signal": signal_tuple[0],
+                            "price": imagened_trade_price,
+                            "reason": signal_tuple[1],
+                        }
+                        trades = trades.append(trad, ignore_index=True,)
+                        last_signal = signal_tuple[0]
+                        print(trad)
+                        if signals_csv_path is not None:
+                            trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
             if position % 100 == 0:
+                precentage = 100 / (end_position - start_position) * (position - start_position)
                 print(
-                    f"""Backtest - position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"""  # noqa:  E501
+                    f"""Backtest - {precentage:.2f}% done. Position: {position-start_position} of {end_position-start_position}, number of signals: {len(trades)}"""  # noqa:  E501
                 )
         return trades
 
@@ -125,6 +148,8 @@ class Backtest:
                 "change %",
                 "open money",
                 "close money",
+                "open reason",
+                "close reason",
             ]
         )
 
@@ -133,9 +158,11 @@ class Backtest:
         open_time = 0
         open_price = 0
         open_money = 0
+        open_reason = ""
         for index, row in signals.iterrows():
             signal = row["signal"]
             price = row["price"]
+            reason = row["reason"]
             time = pd.to_datetime(row["transactTime"])
 
             if index == len(signals) and holding != 0:
@@ -145,6 +172,7 @@ class Backtest:
                 open_time = time
                 open_price = price
                 open_money = money
+                open_reason = reason
                 holding = (money - money * fee) / price
                 money = 0
             elif signal == TradingSignal.SELL:
@@ -161,6 +189,8 @@ class Backtest:
                         "change %": (100.0 / open_price) * (price - open_price),
                         "open money": open_money,
                         "close money": money,
+                        "open reason": open_reason,
+                        "close reason": reason,
                     },
                     ignore_index=True,
                 )
@@ -183,3 +213,13 @@ def set_up_strategy_tmp_path(strategy_dir: str) -> str:
     new_dir = strategy_dir + "/tmp/" + datetime.today().strftime("%Y-%m-%d-%H:%M:%S") + "/"
     create_directory_if_not_exists(new_dir)
     return new_dir
+
+
+def setup_file_path(path: str):
+    today = datetime.today()
+    create_directory_if_not_exists(path)
+
+    def csv_file(file_name: str, extension: str = "csv"):
+        return path + today.strftime("%Y-%m-%d-%H:%M:%S") + "-" + file_name + "." + extension
+
+    return csv_file

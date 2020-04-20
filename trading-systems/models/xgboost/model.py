@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from lib.model import Model
+from targets.classes import up_down
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection._validation import cross_val_score
@@ -12,7 +13,6 @@ from features.bukosabino_ta import roc, macd, default_features
 
 @dataclass
 class XgboostBaseModel(Model):
-
     def __post_init__(self) -> None:
         self.model = xgb.XGBRegressor(  # type: ignore
             objective="multi:softmax",
@@ -83,20 +83,9 @@ class XgboostBaseModel(Model):
 
     @staticmethod
     def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
-        up_treshold = 1.02
-        down_treshold = 1
-        conditions = [
-            (
-                candlesticks.shift(periods=-2)["open"] / candlesticks.shift(periods=-1)["open"]
-                > up_treshold
-            ),
-            (
-                candlesticks.shift(periods=-2)["open"] / candlesticks.shift(periods=1)["open"]
-                < down_treshold
-            ),
-        ]
-        choices = [2, 0]
-        return pd.Series(np.select(conditions, choices, default=1))
+        return up_down.generate_target(
+            df=candlesticks, column="open", up_treshold=1.02, down_treshold=1
+        )
 
     def __hash__(self) -> int:
         return hash(self.__class__.__name__) + hash(self.model)

@@ -45,7 +45,7 @@ class TestStrategy(Strategy):
 
     def on_candlestick_with_features(
         self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame
-    ) -> Optional[TradingSignal]:
+    ) -> Optional[Tuple[TradingSignal, str]]:
         prediction = (
             1.0
             if features.tail(1)["close"].values[0] > 100

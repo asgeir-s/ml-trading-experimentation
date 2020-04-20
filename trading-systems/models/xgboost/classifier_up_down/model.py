@@ -1,6 +1,7 @@
 from models.xgboost.model import XgboostBaseModel
 import xgboost as xgb
 from features.bukosabino_ta import default_features, macd, roc
+from targets.classes import up_down
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass
@@ -44,22 +45,9 @@ class ClassifierUpDownModel(XgboostBaseModel):
 
     @staticmethod
     def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
-        up_treshold = 1
-        down_treshold = 1
-        conditions = [
-            (
-                features.shift(periods=-2)["trend_sma_fast"]
-                / features.shift(periods=-1)["trend_sma_fast"]
-                > up_treshold
-            ),
-            (
-                features.shift(periods=-2)["trend_sma_fast"]
-                / features.shift(periods=-1)["trend_sma_fast"]
-                < down_treshold
-            ),
-        ]
-        choices = [1, 0]
-        return pd.Series(np.select(conditions, choices, default=1))
+        return up_down.generate_target(
+            df=features, column="tend_sma_fast", up_treshold=1, down_treshold=1
+        )
 
     def __hash__(self) -> int:
         return hash(self.__class__.__name__) + hash(self.model)

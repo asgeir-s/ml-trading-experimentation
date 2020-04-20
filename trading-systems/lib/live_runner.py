@@ -85,7 +85,6 @@ class LiveRunner:
             return TradingSignal.SELL
 
     def process_message(self, msg: Any):
-        signal: Optional[TradingSignal] = None
         if msg["e"] == "error":
             print("")
             print(f"Error from websocket: {msg['m']}")
@@ -93,6 +92,8 @@ class LiveRunner:
             self.binance_socket_manager.close()
             self.start()
         else:
+            signal: Optional[TradingSignal] = None
+            reason: Optional[str] = None
             candle_raw = msg["k"]
             current_close_price = candle_raw["c"]
             if candle_raw["x"] is True:
@@ -101,7 +102,7 @@ class LiveRunner:
                     interval=self.candlestick_interval,
                     new_candle=self.msg_to_candle(msg),
                 )
-                signal = self.strategy.on_candlestick(
+                signal, reason = self.strategy.on_candlestick(
                     self.candlesticks,
                     data_util.load_trades(
                         instrument=self.tradingpair,
@@ -111,18 +112,19 @@ class LiveRunner:
                 )
                 print("*", end="", flush=True)
             else:
-                signal = self.strategy.on_tick(current_close_price, self.current_position)
+                signal, reason = self.strategy.on_tick(current_close_price, self.current_position)
             if signal is not None:
                 self.place_order(
-                    signal=signal, last_price=current_close_price,
+                    signal=signal, last_price=current_close_price, reason=reason
                 )
             else:
                 print(".", end="", flush=True)
 
     def place_order(
-        self, signal: TradingSignal, last_price: float,
+        self, signal: TradingSignal, last_price: float, reason: str
     ):
         print(f"Placing new order: signal: {signal}")
+        print(f"Reason: {reason}")
         order: Dict[str, Any]
         if signal == TradingSignal.BUY:
             money = self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
