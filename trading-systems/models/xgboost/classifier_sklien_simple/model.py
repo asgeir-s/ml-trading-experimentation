@@ -1,29 +1,28 @@
 from models.xgboost.model import XgboostBaseModel
-import xgboost as xgb
 from features.bukosabino_ta import default_features, macd, roc
-from targets.classes import up_down
 import pandas as pd
-import numpy as np
+import xgboost as xgb
 from dataclasses import dataclass
+from targets.regression import trend_force
 
 
-@dataclass
-class ClassifierUpDownModel(XgboostBaseModel):
+@dataclass  # type: ignore
+class ClassifierSklienSimpleModel(XgboostBaseModel):
     def __post_init__(self) -> None:
         self.model = xgb.XGBClassifier(  # type: ignore
-            objective="binary:logistic",
+            objective="multi:softmax",
             colsample_bytree=0.8613434432877689,
             learning_rate=0.1747803828120286,
             max_depth=8,
             min_child_weight=1,
             n_estimators=492,
             subsample=0.5361675952749418,
+            num_class=3,
+            eval_metric="merror",
         )
 
     @staticmethod
-    def generate_features(
-        candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
-    ) -> pd.DataFrame:
+    def generate_features(candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame):
         features = default_features.compute(
             candlesticks.drop(columns=["open time", "close time"]), features_already_computed
         )
@@ -45,9 +44,12 @@ class ClassifierUpDownModel(XgboostBaseModel):
 
     @staticmethod
     def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
-        return up_down.generate_target(
-            df=features, column="trend_sma_fast", up_treshold=1, down_treshold=1
-        )
+        df = trend_force.generate_target(candlesticks)
+        df = df.replace([-2, -1, 0, 1, 2], 1)
+        df = df.replace([5, 4, 3], 2)
+        df = df.replace([-5, -4, -3], 0)
+
+        return df
 
     def __hash__(self) -> int:
         return hash(self.__class__.__name__) + hash(self.model)

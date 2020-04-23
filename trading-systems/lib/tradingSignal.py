@@ -2,5 +2,6 @@ from enum import Enum
 
 
 class TradingSignal(Enum):
-    BUY = 1
+    BUY = 2
+    NONE = 1
     SELL = 0

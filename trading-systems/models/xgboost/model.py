@@ -52,7 +52,7 @@ class XgboostBaseModel(Model):
         # retrieve performance metrics
         kfold = StratifiedKFold(n_splits=10)
         results = cross_val_score(self.model, test_set_features, test_set_target, cv=kfold)
-        print("kfold Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
+        print("kfold Accuracy (this only makes sense to classifyers): %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
 
     def print_info(self) -> None:
         xgb.plot_importance(self.model)  # type: ignore

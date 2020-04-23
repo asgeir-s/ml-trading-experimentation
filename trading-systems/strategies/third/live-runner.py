@@ -1,4 +1,4 @@
-from strategies.second.second import Second
+from strategies import Third as Strategy
 from lib import data_util
 from lib.live_runner import LiveRunner
 import pandas as pd
@@ -16,6 +16,8 @@ trades: pd.DataFrame
 
 
 def main(binance_client):
+    strategy = Strategy()
+
     print("Start loading candlesticks")
     candlesticks = data_util.load_candlesticks(
         instrument=ASSET + BASE_ASSET, interval=candlestick_interval, binance_client=binance_client
@@ -23,15 +25,16 @@ def main(binance_client):
     print("Finished loading candlesticks")
 
     print("Start generatinf features")
-    features = Second.generate_features(candlesticks)
+    features = strategy.generate_features(candlesticks)
     print("Finished generating features")
 
     print("Start initiating strategy")
-    strategy = Second(init_features=features)
+    strategy.init(candlesticks=candlesticks, features=features)
     print("Finished initiating strategy")
 
     print("Start live trading")
 
+    # TODO: fix this to run with the new refactoring
     runner = LiveRunner(
         trading_strategy_instance_name=TRADING_STRATEGY_INSTANCE_NAME,
         asset=ASSET,
