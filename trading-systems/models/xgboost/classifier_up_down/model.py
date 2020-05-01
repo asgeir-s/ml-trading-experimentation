@@ -3,21 +3,24 @@ import xgboost as xgb
 from features.bukosabino_ta import default_features, macd, roc
 from targets.classes import up_down
 import pandas as pd
-import numpy as np
 from dataclasses import dataclass
 
 
 @dataclass
 class ClassifierUpDownModel(XgboostBaseModel):
+    target_feature_to_predict: str = "trend_sma_fast"
+    treshold: float = 1
+
     def __post_init__(self) -> None:
         self.model = xgb.XGBClassifier(  # type: ignore
             objective="binary:logistic",
-            colsample_bytree=0.8613434432877689,
-            learning_rate=0.1747803828120286,
-            max_depth=8,
+            colsample_bytree=0.86,
+            learning_rate=0.175,
+            max_depth=10,
             min_child_weight=1,
-            n_estimators=492,
-            subsample=0.5361675952749418,
+            n_estimators=120,
+            subsample=0.5,
+            validate_parameters=True,
         )
 
     @staticmethod
@@ -30,6 +33,8 @@ class ClassifierUpDownModel(XgboostBaseModel):
         features = macd.compute(candlesticks, features, 100, 30, 20)
         features = macd.compute(candlesticks, features, 300, 100, 50)
         features = macd.compute(candlesticks, features, 15, 5, 3)
+        features = macd.compute(candlesticks, features, 10, 4, 2)
+        features = macd.compute(candlesticks, features, 7, 3, 2)
         features = roc.compute(candlesticks, features, 2)
         features = roc.compute(candlesticks, features, 3)
         features = roc.compute(candlesticks, features, 3)
@@ -43,10 +48,11 @@ class ClassifierUpDownModel(XgboostBaseModel):
 
         return features
 
-    @staticmethod
-    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
         return up_down.generate_target(
-            df=features, column="trend_sma_fast", up_treshold=1, down_treshold=1
+            df=features,
+            column=self.target_feature_to_predict,
+            treshold=self.treshold,
         )
 
     def __hash__(self) -> int:

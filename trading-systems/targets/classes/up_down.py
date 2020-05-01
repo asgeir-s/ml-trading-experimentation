@@ -3,16 +3,16 @@ import numpy as np
 
 
 def generate_target(
-    df: pd.DataFrame, column: str, up_treshold: float, down_treshold: float
+    df: pd.DataFrame, column: str, treshold: float
 ) -> pd.Series:
     conditions = [
         (
             df.shift(periods=-2)[column] / df.shift(periods=-1)[column]
-            > up_treshold
+            >= treshold
         ),
         (
             df.shift(periods=-2)[column] / df.shift(periods=-1)[column]
-            < down_treshold
+            < treshold
         ),
     ]
     choices = [1, 0]

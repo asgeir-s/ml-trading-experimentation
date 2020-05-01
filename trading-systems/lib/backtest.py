@@ -82,7 +82,7 @@ class Backtest:
                 }
                 trades = trades.append(trad, ignore_index=True,)
                 last_signal = signal_tuple[0]
-                print(trad)
+                # print(trad)
                 if signals_csv_path is not None:
                     trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
             # check if take profit or stop loss should be executed before getting next periode
@@ -101,9 +101,9 @@ class Backtest:
                     time = pd.to_datetime(NEXT_PERIODE["close time"], unit="ms").values[0]
 
                     if signal_tuple is not None:
-                        print(
-                            f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
-                        )
+                        # print(
+                        #     f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
+                        # )
                         trad = {
                             "transactTime": time,
                             "signal": signal_tuple[0],
@@ -112,7 +112,7 @@ class Backtest:
                         }
                         trades = trades.append(trad, ignore_index=True,)
                         last_signal = signal_tuple[0]
-                        print(trad)
+                        # print(trad)
                         if signals_csv_path is not None:
                             trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
             if position % 100 == 0:

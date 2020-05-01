@@ -84,7 +84,7 @@ class XgboostBaseModel(Model):
     @staticmethod
     def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
         return up_down.generate_target(
-            df=candlesticks, column="open", up_treshold=1.02, down_treshold=1
+            df=candlesticks, column="open", treshold=1.02
         )
 
     def __hash__(self) -> int:

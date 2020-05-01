@@ -40,7 +40,7 @@ class Strategy(abc.ABC):
         It also calls predict on every model and calls on_candlestick_with_features_and_perdictions with the
         predictions.
         """
-        if len(features) % 100 == 0:
+        if len(features) % 400 == 0:
             print("Strategy - Start retraining.")
             self.__train(candlesticks, features)
             print("Strategy - End retraining.")

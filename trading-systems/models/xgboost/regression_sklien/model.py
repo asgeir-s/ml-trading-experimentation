@@ -3,6 +3,7 @@ from features.bukosabino_ta import default_features, macd, roc
 import pandas as pd
 from dataclasses import dataclass
 from targets.regression import trend_force
+import xgboost as xgb
 
 
 @dataclass  # type: ignore
@@ -10,11 +11,13 @@ class RegressionSklienModel(XgboostBaseModel):
     def __post_init__(self) -> None:
         self.model = xgb.XGBRegressor(  # type: ignore
             objective="reg:squarederror",
-            max_depth=15,
-            colsample_bytree=0.3,
-            learning_rate=0.1,
+            max_depth=13,
+            colsample_bytree=0.75,
+            learning_rate=0.569,
             alpha=10,
-            n_estimators=200,
+            n_estimators=150,
+            min_child_weight=3,
+            subsample=0.6565727227919285,
         )
 
     @staticmethod
