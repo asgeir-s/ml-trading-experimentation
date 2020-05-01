@@ -32,10 +32,10 @@ class Third(Strategy):
             last_signal == TradingSignal.SELL
             and up_down_model_prediction == 1
             and last_features["momentum_roc-30"].values[0] > 0
-            and sklien_regressor_model_prediction > 1
+            and sklien_regressor_model_prediction > 2 # 1 is pritty good
         ):
-            current_price = last_features["close"].values[0]
-            self.stop_loss = current_price * 0.96
+            ##current_price = last_features["close"].values[0]
+            ##self.stop_loss = current_price * 0.96
             signal = (TradingSignal.BUY, "Sklien and up down classifier indicate up")
         elif (
             last_signal == TradingSignal.BUY
