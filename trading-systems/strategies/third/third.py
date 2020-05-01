@@ -41,7 +41,7 @@ class Third(Strategy):
             last_signal == TradingSignal.BUY
             and up_down_model_prediction == 0
             and last_features["momentum_roc-30"].values[0] < 0
-            and sklien_regressor_model_prediction < -1
+            and sklien_regressor_model_prediction < 2  # 1.5
         ):
             signal = (TradingSignal.SELL, "sklien and up down classifier indicate down")
         return signal
