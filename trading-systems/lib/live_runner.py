@@ -1,5 +1,5 @@
 from binance.client import Client
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Tuple
 from binance.websockets import BinanceSocketManager
 from lib.strategy import Strategy
 from lib.tradingSignal import TradingSignal
@@ -31,7 +31,7 @@ class LiveRunner:
         if self.__current_position is not None:
             return self.__current_position
         else:
-            current_position = self.get_current_position(
+            new_current_position = self.get_current_position(
                 self.binance_client, self.asset, self.base_asset
             )
             trades = data_util.load_trades(
@@ -42,12 +42,12 @@ class LiveRunner:
             last_trade_signal_saved = None if trades is None else trades.tail(1)
             print(f"Last saved trade is: {last_trade_signal_saved}")
             assert last_trade_signal_saved is None or (
-                last_trade_signal_saved["signal"].values[0] == str(self.current_position)
+                last_trade_signal_saved["signal"].values[0] == str(new_current_position)
             ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
-            self.__current_position = current_position
-            return self.__current_position
+            self.current_position = new_current_position
+            return self.current_position
 
-    @property.setter  # noqa: F811
+    @current_position.setter  # noqa: F811
     def current_position(self, new_position: TradingSignal):
         self.__current_position = new_position
 
@@ -92,8 +92,7 @@ class LiveRunner:
             self.binance_socket_manager.close()
             self.start()
         else:
-            signal: Optional[TradingSignal] = None
-            reason: Optional[str] = None
+            signal_tuple: Optional[Tuple[TradingSignal, str]] = None
             candle_raw = msg["k"]
             current_close_price = candle_raw["c"]
             if candle_raw["x"] is True:
@@ -102,7 +101,7 @@ class LiveRunner:
                     interval=self.candlestick_interval,
                     new_candle=self.msg_to_candle(msg),
                 )
-                signal, reason = self.strategy.on_candlestick(
+                signal_tuple = self.strategy.on_candlestick(
                     self.candlesticks,
                     data_util.load_trades(
                         instrument=self.tradingpair,
@@ -112,17 +111,14 @@ class LiveRunner:
                 )
                 print("*", end="", flush=True)
             else:
-                signal, reason = self.strategy.on_tick(current_close_price, self.current_position)
-            if signal is not None:
-                self.place_order(
-                    signal=signal, last_price=current_close_price, reason=reason
-                )
+                signal_tuple = self.strategy.on_tick(current_close_price, self.current_position)
+
+            if signal_tuple is not None:
+                self.place_order(signal=signal_tuple[0], last_price=current_close_price, reason=signal_tuple[1])
             else:
                 print(".", end="", flush=True)
 
-    def place_order(
-        self, signal: TradingSignal, last_price: float, reason: str
-    ):
+    def place_order(self, signal: TradingSignal, last_price: float, reason: str):
         print(f"Placing new order: signal: {signal}")
         print(f"Reason: {reason}")
         order: Dict[str, Any]
