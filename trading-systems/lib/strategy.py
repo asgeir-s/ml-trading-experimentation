@@ -49,6 +49,8 @@ class Strategy(abc.ABC):
         for model in self.models:
             predictions[model] = model.predict(candlesticks, features)
 
+        print(predictions)
+
         return self.on_candlestick_with_features_and_perdictions(
             candlesticks, features, trades, predictions
         )
@@ -90,14 +92,14 @@ class Strategy(abc.ABC):
     @staticmethod
     def get_last_trade(
         trades: pd.DataFrame,
-    ) -> Tuple[Optional[Any], Optional[TradingSignal], Optional[float]]:
+    ) -> Tuple[Optional[int], Optional[TradingSignal], Optional[float]]:
         if len(trades) == 0:
             return None, None, None
         else:
             last = trades.tail(1)
-            time = last["transactTime"].values[0]
-            signal = last["signal"].values[0]
-            price = last["price"].values[0]
+            time = int(last["transactTime"].values[0])
+            signal = TradingSignal.BUY if "BUY" in last["signal"].values[0] else TradingSignal.SELL
+            price = float(last["price"].values[0])
             return time, signal, price
 
     def generate_features(self, candlesticks: pd.DataFrame) -> pd.DataFrame:

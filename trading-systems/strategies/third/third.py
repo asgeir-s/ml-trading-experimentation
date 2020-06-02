@@ -27,7 +27,7 @@ class Third(Strategy):
         up_down_model_prediction = predictions[self.models[0]]
         sklien_regressor_model_prediction = predictions[self.models[1]]
 
-        signal: Optional[Tuple[TradingSignal, str]] = None
+        signal_tuple: Optional[Tuple[TradingSignal, str]] = None
         if (
             last_signal == TradingSignal.SELL
             and up_down_model_prediction == 1
@@ -36,12 +36,13 @@ class Third(Strategy):
         ):
             current_price = last_features["close"].values[0]
             self.stop_loss = current_price * 0.95  # 0.95 last
-            signal = (TradingSignal.BUY, "Sklien and up down classifier indicate up")
+            signal_tuple = (TradingSignal.BUY, "Sklien and up down classifier indicate up")
         elif (
             last_signal == TradingSignal.BUY
             and up_down_model_prediction == 0
             and last_features["momentum_roc-30"].values[0] < 0
             # and sklien_regressor_model_prediction < 3  # best 3
         ):
-            signal = (TradingSignal.SELL, "sklien and up down classifier indicate down")
-        return signal
+            signal_tuple = (TradingSignal.SELL, "sklien and up down classifier indicate down")
+
+        return signal_tuple
