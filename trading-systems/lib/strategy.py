@@ -49,7 +49,7 @@ class Strategy(abc.ABC):
         for model in self.models:
             predictions[model] = model.predict(candlesticks, features)
 
-        print(predictions)
+        # print(predictions)
 
         return self.on_candlestick_with_features_and_perdictions(
             candlesticks, features, trades, predictions
