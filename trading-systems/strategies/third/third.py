@@ -40,7 +40,7 @@ class Third(Strategy):
             and momentum_roc_30 > 0
             and sklien_regressor_model_prediction > 2.5  # 2.5 is awesome
         ):
-            current_price = last_features["close"].values[0]
+            current_price = float(last_features["close"].values[0])
             self.stop_loss = current_price * 0.95  # 0.95 last
             signal_tuple = (TradingSignal.BUY, "Sklien and up down classifier indicate up")
         elif (

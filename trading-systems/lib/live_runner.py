@@ -94,7 +94,7 @@ class LiveRunner:
         else:
             signal_tuple: Optional[Tuple[TradingSignal, str]] = None
             candle_raw = msg["k"]
-            current_close_price = candle_raw["c"]
+            current_close_price = float(candle_raw["c"])
             if candle_raw["x"] is True:
                 self.candlesticks = data_util.add_candle(
                     instrument=self.tradingpair,
