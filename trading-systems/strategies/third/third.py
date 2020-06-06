@@ -5,6 +5,7 @@ from models.xgboost import RegressionSklienModel
 from lib.tradingSignal import TradingSignal
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, Tuple
+from datetime import datetime
 
 
 @dataclass
@@ -28,10 +29,17 @@ class Third(Strategy):
         sklien_regressor_model_prediction = predictions[self.models[1]]
         momentum_roc_30 = last_features["momentum_roc-30"].values[0]
 
+        now = datetime.now()
+        current_time = now.strftime("%d %B %Y, %H:%M:%S")
+
+        print("")
         print("EVALUATION")
-        print(f"up_down_model_prediction: {up_down_model_prediction} - must be 1 to buy")
+        print(f"last signal: {last_signal}")
+        print(f"time: {current_time}")
+        print(f"up_down_model_prediction: {up_down_model_prediction} - must be 1 to buy - must be 0 to sell")
         print(f"sklien_regressor_model_prediction: {sklien_regressor_model_prediction} - must be above 2.5 to buy")
-        print(f"momentum_roc_30: {momentum_roc_30} - must be positive to buy")
+        print(f"momentum_roc_30: {momentum_roc_30} - must be positive to buy - must be negative to sell")
+        print("")
 
         signal_tuple: Optional[Tuple[TradingSignal, str]] = None
         if (
