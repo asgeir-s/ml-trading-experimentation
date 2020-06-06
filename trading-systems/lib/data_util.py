@@ -128,20 +128,21 @@ def load_trades(instrument: str, interval: str, trading_strategy_instance_name: 
     name = f"{trading_strategy_instance_name}-{instrument}-{interval}"
     if trades.get(name) is None:
         trades[name] = read_csv_if_exists(f"{tmp_path}/trades/" + name + ".csv")
-        trades[name] = trades[name].astype(
-            {
-                "orderId": int,
-                "transactTime": int,
-                "price": float,
-                "signal": str,
-                "origQty": float,
-                "executedQty": float,
-                "cummulativeQuoteQty": float,
-                "timeInForce": str,
-                "type": str,
-                "side": str,
-            }
-        )
+        if trades[name] is not None:
+            trades[name] = trades[name].astype(
+                {
+                    "orderId": int,
+                    "transactTime": int,
+                    "price": float,
+                    "signal": str,
+                    "origQty": float,
+                    "executedQty": float,
+                    "cummulativeQuoteQty": float,
+                    "timeInForce": str,
+                    "type": str,
+                    "side": str,
+                }
+            )
 
     return trades[name]
 
