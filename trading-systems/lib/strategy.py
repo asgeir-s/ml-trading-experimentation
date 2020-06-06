@@ -91,9 +91,9 @@ class Strategy(abc.ABC):
 
     @staticmethod
     def get_last_trade(
-        trades: pd.DataFrame,
+        trades: Optional[pd.DataFrame],
     ) -> Tuple[Optional[int], Optional[TradingSignal], Optional[float]]:
-        if len(trades) == 0:
+        if trades is None or len(trades) == 0:
             return None, None, None
         else:
             last = trades.tail(1)
