@@ -12,6 +12,14 @@ or
 ## The fix
     export PYTHONPATH=.
 
+## Example of running on Raspberry Pi
+    export PYTHONPATH=.
+    export PYTHONUNBUFFERED=1 # to make python print to the log file continually
+    nohup python3 strategies/third/live-runner.py &>> ./log/6-jun-2020.txt & # to write logs to file and make sure that the process keeps running when the terminal is exited
+
+Then show live logs:
+    tail -F ./log/6-jun-2020.txt 
+
 ## Installing packages
 
 First try with conda install
