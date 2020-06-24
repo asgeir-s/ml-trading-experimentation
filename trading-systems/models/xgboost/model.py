@@ -50,7 +50,7 @@ class XgboostBaseModel(Model):
         # print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
         # retrieve performance metrics
-        kfold = StratifiedKFold(n_splits=10)
+        kfold = StratifiedKFold(n_splits=5)
         results = cross_val_score(self.model, test_set_features, test_set_target, cv=kfold)
         print("kfold Accuracy (this only makes sense to classifyers): %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
 
