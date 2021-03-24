@@ -10,7 +10,6 @@ tmp_path = "tmp/"
 def read_csv_if_exists(file_path: str) -> Optional[pd.DataFrame]:
     try:
         return pd.read_csv(file_path)
-
     except FileNotFoundError:
         return None
 
@@ -108,6 +107,8 @@ def load_candlesticks(
 
 
 def add_candle(instrument: str, interval: str, new_candle: Dict):
+    print("\nNew candle:")
+    print(new_candle)
     candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
         new_candle, ignore_index=True
     )

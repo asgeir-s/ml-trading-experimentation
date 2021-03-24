@@ -1,6 +1,5 @@
 {
     "python.pythonPath": "conda-env/bin/python",
-    "python.dataScience.jupyterServerURI": "local",
     "cSpell.words": [
         "BTCUSDT",
         "CUDF",
@@ -23,5 +22,6 @@
         "rmse",
         "sklearn",
         "strftime"
-    ]
+    ],
+    "jupyter.jupyterServerType": "local"
 }

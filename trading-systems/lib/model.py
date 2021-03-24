@@ -36,17 +36,17 @@ class Model(abc.ABC):
     def print_info(self) -> None:
         """Print or plot information about the current model."""
 
-    @staticmethod
+    # @staticmethod
     @abc.abstractmethod
     def generate_features(
-        candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+        self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
     ) -> pd.DataFrame:
         """Given a dataframe with the candlestick data and the features that are already computed,it
         should add any new features to the features_already_computed DataFrame and return it."""
 
-    @staticmethod
+    # @staticmethod
     @abc.abstractmethod
-    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
         """Given a dataframe with the correct features, it return a series
         with the same indexes containing the target."""
 

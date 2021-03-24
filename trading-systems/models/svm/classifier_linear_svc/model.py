@@ -65,7 +65,7 @@ class ClassifierLinearSVC(Model):
         return prediction
 
     def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
-        predictions = self.model.predict_dataframe(test_set_features)
+        predictions = self.model.predict(test_set_features)
         print(classification_report(test_set_target, predictions))
 
     def print_info(self) -> None:

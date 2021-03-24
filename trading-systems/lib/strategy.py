@@ -10,6 +10,7 @@ from lib.data_splitter import split_features_and_target_into_train_and_test_set
 @dataclass  # type: ignore
 class Strategy(abc.ABC):
     stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
     models: Tuple[Model, ...] = ()
 
     @abc.abstractmethod
@@ -35,12 +36,12 @@ class Strategy(abc.ABC):
         self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame
     ) -> Optional[Tuple[TradingSignal, str]]:
         """
-        It calls the __train method every 100th execution.
+        It calls the __train method every nth execution.
 
         It also calls predict on every model and calls on_candlestick_with_features_and_perdictions with the
         predictions.
         """
-        if len(features) % 400 == 0:
+        if len(features) % 720 == 0:
             print("Strategy - Start retraining.")
             self.__train(candlesticks, features)
             print("Strategy - End retraining.")
@@ -68,7 +69,9 @@ class Strategy(abc.ABC):
         Can be used from outside for testing targets.
         """
 
-    def on_tick(self, price: float, last_signal: TradingSignal) -> Optional[Tuple[TradingSignal, str]]:
+    def on_tick(
+        self, price: float, last_signal: TradingSignal
+    ) -> Optional[Tuple[TradingSignal, str]]:
         """
         Checks if the stoploss should be executed. Should be called on every tick in live mode.
         Be carful overriding this as it will not be possible to backtest when it is changed.
@@ -78,7 +81,19 @@ class Strategy(abc.ABC):
             and last_signal == TradingSignal.BUY
             and price <= self.stop_loss
         ):
-            return (TradingSignal.SELL, f"Stop loss: price ({price}) is below stop loss ({self.stop_loss})")
+            return (
+                TradingSignal.SELL,
+                f"Stop loss: price ({price}) is below stop loss ({self.stop_loss})",
+            )
+        elif (
+            self.take_profit is not None
+            and last_signal == TradingSignal.BUY
+            and price >= self.take_profit
+        ):
+            return (
+                TradingSignal.SELL,
+                f"Take profit: price ({price}) is above take profit ({self.take_profit})",
+            )
         else:
             return None
 
@@ -87,7 +102,7 @@ class Strategy(abc.ABC):
         This should be overwritten with a function returning false is a stoploss or trailing stoploss is not used.
         This is used for optimizing the backtest.
         """
-        return last_signal == TradingSignal.BUY and self.stop_loss is not None
+        return last_signal == TradingSignal.BUY and (self.stop_loss is not None or self.take_profit is not None)
 
     @staticmethod
     def get_last_trade(
@@ -98,7 +113,9 @@ class Strategy(abc.ABC):
         else:
             last = trades.tail(1)
             time = int(last["transactTime"].values[0])
-            signal = TradingSignal.BUY if "BUY" in last["signal"].values[0] else TradingSignal.SELL
+            signal = (
+                TradingSignal.BUY if "BUY" in str(last["signal"].values[0]) else TradingSignal.SELL
+            )
             price = float(last["price"].values[0])
             return time, signal, price
 

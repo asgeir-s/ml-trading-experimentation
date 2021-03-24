@@ -6,7 +6,7 @@ import os, sys
 
 sys.path.insert(0, os.path.abspath("../../.."))
 
-# %%
+import pandas as pd
 from models.svm.classifier_linear_svc import ClassifierLinearSVC
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
@@ -24,14 +24,12 @@ candlesticks
 model = ClassifierLinearSVC()
 features = pd.DataFrame(index=candlesticks.index)
 
-features = model.generate_features(candlesticks, features)
-target = model.generate_target(candlesticks, features)
+features = model.generate_features(candlesticks, features)[350:]
+target = model.generate_target(candlesticks, features)[350:]
 
-features
-
+# features
 
 # %%
-target.describe()
 target.value_counts()
 
 
@@ -47,6 +45,10 @@ target.value_counts()
 # %%
 # scatte = scatter_matrix(test_set_features.iloc[:, -5:], c=test_set_target.iloc[:], s=40, hist_kwds={"bins": 15}, figsize=(20,20))
 
+# %%
+pd.set_option('display.max_rows', 100)
+
+training_set_features.isna().sum()
 
 # %%
 model.train(training_set_features, training_set_targets[0])

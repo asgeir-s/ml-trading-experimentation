@@ -89,32 +89,44 @@ class Backtest:
             if (
                 last_signal == TradingSignal.BUY
                 and strategy.need_ticks(last_signal)
-                and strategy.stop_loss is not None
+                and (strategy.stop_loss is not None or strategy.take_profit is not None)
             ):
                 NEXT_PERIOD_LOW: float = NEXT_PERIODE["low"].values[0]
+                NEXT_PERIOD_HIGH: float = NEXT_PERIODE["high"].values[0]
                 # print("checks stoploss")
                 # print("NEXT_PERIOD_LOW: " + str(NEXT_PERIOD_LOW))
                 # print("Strategy stoploss: " + str(strategy.stop_loss))
-                if NEXT_PERIOD_LOW < strategy.stop_loss:
-                    imagened_trade_price = strategy.stop_loss * 0.99  # slippage 1%
+                imagened_trade_price = 0
+                signal_tuple = None
+                time = pd.to_datetime(NEXT_PERIODE["close time"], unit="ms").values[0]
+                if strategy.stop_loss is not None and NEXT_PERIOD_LOW < strategy.stop_loss:
+                    print("stoploss executing")
+                    imagened_trade_price = strategy.stop_loss * 0.995  # slippage 0.5%
                     signal_tuple = strategy.on_tick(imagened_trade_price, last_signal)
-                    time = pd.to_datetime(NEXT_PERIODE["close time"], unit="ms").values[0]
+                elif strategy.take_profit is not None and NEXT_PERIOD_HIGH > strategy.take_profit:
+                    print("take profit executing")
+                    imagened_trade_price = strategy.take_profit
+                    signal_tuple = strategy.on_tick(imagened_trade_price, last_signal)
+                    print("imagened trade price:", imagened_trade_price)
+                    print("signal:", signal_tuple[0])
+                    print("signal reason:", signal_tuple[1])
 
-                    if signal_tuple is not None:
-                        # print(
-                        #     f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
-                        # )
-                        trad = {
-                            "transactTime": time,
-                            "signal": signal_tuple[0],
-                            "price": imagened_trade_price,
-                            "reason": signal_tuple[1],
-                        }
-                        trades = trades.append(trad, ignore_index=True,)
-                        last_signal = signal_tuple[0]
-                        # print(trad)
-                        if signals_csv_path is not None:
-                            trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
+                if signal_tuple is not None:
+                    # print(
+                    #     f"Stoploss executed: Trade price: {imagened_trade_price}, low was: {NEXT_PERIOD_LOW}"
+                    # )
+                    print("creating trade")
+                    trad = {
+                        "transactTime": time,
+                        "signal": signal_tuple[0],
+                        "price": imagened_trade_price,
+                        "reason": signal_tuple[1],
+                    }
+                    trades = trades.append(trad, ignore_index=True,)
+                    last_signal = signal_tuple[0]
+                    # print(trad)
+                    if signals_csv_path is not None:
+                        trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
             if position % 100 == 0:
                 precentage = 100 / (end_position - start_position) * (position - start_position)
                 print(
@@ -164,11 +176,21 @@ class Backtest:
             price = row["price"]
             reason = row["reason"]
             time = pd.to_datetime(row["transactTime"])
+            print("signal:", signal)
+            print("price:", price)
+            print("reason:", reason)
+
+            if signal not in (TradingSignal.BUY, TradingSignal.SELL):
+                if "BUY" in signal:
+                    signal = TradingSignal.BUY
+                elif "SELL" in signal:
+                    signal = TradingSignal.SELL
 
             if index == len(signals) and holding != 0:
                 signal = TradingSignal.SELL
 
             if signal == TradingSignal.BUY:
+                print("signal is buy")
                 open_time = time
                 open_price = price
                 open_money = money
@@ -176,8 +198,10 @@ class Backtest:
                 holding = (money - money * fee) / price
                 money = 0
             elif signal == TradingSignal.SELL:
+                print("signal is sell")
                 money = (holding - holding * fee) * price
                 holding = 0
+                print("appending trade")
                 trades = trades.append(
                     {
                         "open time": open_time,
@@ -195,6 +219,7 @@ class Backtest:
                     ignore_index=True,
                 )
 
+        print(trades)
         start_money = trades["open money"].head(1).values[0]
         end_money = trades["close money"].tail(1).values[0]
 

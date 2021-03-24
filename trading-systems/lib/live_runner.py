@@ -114,7 +114,9 @@ class LiveRunner:
                 signal_tuple = self.strategy.on_tick(current_close_price, self.current_position)
 
             if signal_tuple is not None:
-                self.place_order(signal=signal_tuple[0], last_price=current_close_price, reason=signal_tuple[1])
+                self.place_order(
+                    signal=signal_tuple[0], last_price=current_close_price, reason=signal_tuple[1]
+                )
             else:
                 print(".", end="", flush=True)
 
@@ -125,13 +127,16 @@ class LiveRunner:
         if signal == TradingSignal.BUY:
             money = self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
             quantity = float(money) / float(last_price) * 0.9995
-            quantity = round(quantity, 6)
-            print(f"ORDER: Market buy {quantity} of {self.tradingpair}")
-            order = self.binance_client.order_market_buy(symbol=self.tradingpair, quantity=quantity)
+            # quantity = round(quantity, 10)
+            quantity_str = f"{quantity:.8f}"[
+                :-2
+            ]  # make sure we round down by removing the last two digits
+            print(f"ORDER: Market buy {quantity_str} of {self.tradingpair}")
+            order = self.binance_client.order_market_buy(symbol=self.tradingpair, quantity=quantity_str)
         elif signal == TradingSignal.SELL:
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
             quantity_str = f"{quantity:.8f}"[:-2]  # make sure we round down
-            print(f"ORDER: Market sell {quantity} of {self.tradingpair}")
+            print(f"ORDER: Market sell {quantity_str} of {self.tradingpair}")
             order = self.binance_client.order_market_sell(
                 symbol=self.tradingpair, quantity=quantity_str
             )
