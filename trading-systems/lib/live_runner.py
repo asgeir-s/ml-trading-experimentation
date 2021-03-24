@@ -101,14 +101,17 @@ class LiveRunner:
                     interval=self.candlestick_interval,
                     new_candle=self.msg_to_candle(msg),
                 )
-                signal_tuple = self.strategy.on_candlestick(
-                    self.candlesticks,
-                    data_util.load_trades(
-                        instrument=self.tradingpair,
-                        interval=self.candlestick_interval,
-                        trading_strategy_instance_name=self.trading_strategy_instance_name,
-                    ),
+                trades = data_util.load_trades(
+                    instrument=self.tradingpair,
+                    interval=self.candlestick_interval,
+                    trading_strategy_instance_name=self.trading_strategy_instance_name,
                 )
+                if trades is None or len(trades) == 0:
+                    print(
+                        "WARNING: there are no trades for this trading system yet. The current position on the exchange needs to match whats specified in the strategy if there are no trades."
+                    )
+
+                signal_tuple = self.strategy.on_candlestick(self.candlesticks, trades)
                 print("*", end="", flush=True)
             else:
                 signal_tuple = self.strategy.on_tick(current_close_price, self.current_position)
@@ -125,18 +128,22 @@ class LiveRunner:
         print(f"Reason: {reason}")
         order: Dict[str, Any]
         if signal == TradingSignal.BUY:
-            money = self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
-            quantity = float(money) / float(last_price) * 0.9995
-            # quantity = round(quantity, 10)
-            quantity_str = f"{quantity:.8f}"[
-                :-2
-            ]  # make sure we round down by removing the last two digits
-            print(f"ORDER: Market buy {quantity_str} of {self.tradingpair}")
-            order = self.binance_client.order_market_buy(symbol=self.tradingpair, quantity=quantity_str)
+            # buy as much we can with the available
+            quantity = float(self.binance_client.get_asset_balance(asset=self.base_asset)["free"])
+            # make sure we round down by removing the last two digits https://github.com/sammchardy/python-binance/issues/219
+            quantity_str = f"{quantity:.8f}"[:-2]
+            print(
+                f"ORDER: Market buy! use {quantity_str} {self.base_asset} to buy as much {self.asset} we can"
+            )
+            order = self.binance_client.order_market_buy(
+                symbol=self.tradingpair, quoteOrderQty=quantity_str
+            )
         elif signal == TradingSignal.SELL:
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
-            quantity_str = f"{quantity:.8f}"[:-2]  # make sure we round down
-            print(f"ORDER: Market sell {quantity_str} of {self.tradingpair}")
+            quantity_str = f"{quantity:.8f}"[:-2]  # make sure we round down https://github.com/sammchardy/python-binance/issues/219
+            print(
+                f"ORDER: Market sell! {quantity_str} {self.asset} for as much {self.base_asset} we can"
+            )
             order = self.binance_client.order_market_sell(
                 symbol=self.tradingpair, quantity=quantity_str
             )

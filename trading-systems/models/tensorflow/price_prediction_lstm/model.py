@@ -99,7 +99,7 @@ class PricePreditionLSTMModel(Model):
         features_copy = features.copy()
         print("training start")
         number_of_inputs = len(features.columns)  # 242
-        print(features.columns)
+        # print(features.columns)
         # print(features.describe())
         print(target.describe())
 

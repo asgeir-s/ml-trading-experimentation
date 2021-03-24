@@ -24,10 +24,13 @@ class PricePredictor(Strategy):
         predictions: Dict[Any, float],
     ) -> Optional[Tuple[TradingSignal, str]]:
         last_time, last_signal, last_price = self.get_last_trade(trades)
+
         if last_signal is None:
-            last_signal = (
-                TradingSignal.BUY
-            )  # TODO: find a way to set this automatic on first run. For now this must be adjusted to fit the position on the exchange on the first run.
+            # TODO: find a way to set this automatic on first run. For now this must be adjusted to fit the position on the exchange on the first run.
+            last_signal = TradingSignal.SELL
+            print(
+                f"WARNING: theire are no previous trades for this tradingsystem. The position on the exchange needs to be {last_signal}"
+            )
 
         close_prediction = predictions[self.models[0]]
         lowest_min_prediction = predictions[self.models[1]]

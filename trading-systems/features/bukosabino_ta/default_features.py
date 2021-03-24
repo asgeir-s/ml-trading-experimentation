@@ -10,7 +10,7 @@ def compute(candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame)
             [
                 features_already_computed,
                 ta.add_all_ta_features(
-                    candlesticks,
+                    candlesticks.copy(),
                     open="open",
                     high="high",
                     low="low",
