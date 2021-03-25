@@ -142,6 +142,7 @@ def load_trades(instrument: str, interval: str, trading_strategy_instance_name: 
                     "timeInForce": str,
                     "type": str,
                     "side": str,
+                    "reason": str,
                 }
             )
 
@@ -167,6 +168,7 @@ def add_trade(
                 "timeInForce",
                 "type",
                 "side",
+                "reason",
             ],
         )
     trades[name] = trades[name].append(new_trade_dict, ignore_index=True)

@@ -182,7 +182,7 @@ class LiveRunner:
                 instrument=self.tradingpair,
                 interval=self.candlestick_interval,
                 trading_strategy_instance_name=self.trading_strategy_instance_name,
-                new_trade_dict=self.order_to_trade(order, signal),
+                new_trade_dict=self.order_to_trade(order, signal, reason),
             )
             self.current_position = signal
 
@@ -191,7 +191,7 @@ class LiveRunner:
             print(order)
 
     @staticmethod
-    def order_to_trade(order: Any, signal: TradingSignal):
+    def order_to_trade(order: Any, signal: TradingSignal, reason: str = ""):
         acc_price, acc_quantity = reduce(
             lambda acc, item: (
                 acc[0] + float(item["price"]) * float(item["qty"]),
@@ -213,6 +213,7 @@ class LiveRunner:
             "timeInForce": str(order["timeInForce"]),
             "type": str(order["type"]),
             "side": str(order["side"]),
+            "reason": str(reason)
         }
 
     @staticmethod
