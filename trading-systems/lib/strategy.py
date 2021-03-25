@@ -41,10 +41,19 @@ class Strategy(abc.ABC):
         It also calls predict on every model and calls on_candlestick_with_features_and_perdictions with the
         predictions.
         """
-        if len(features) % 720 == 0:
+        if len(candlesticks) % 720 == 0:
+            if len(candlesticks) > len(features):
+                features = self.generate_features(
+                    candlesticks
+                )  # Added here to recompute all features only when traing is starting, if only the latest features are computed (for optimization)
             print("Strategy - Start retraining.")
             self.__train(candlesticks, features)
             print("Strategy - End retraining.")
+
+        if len(candlesticks) > len(features):
+            candlesticks = candlesticks.tail(
+                len(features)
+            )  # make sure we limit the omout of candles to the same as the features (if optimized)
 
         predictions = {}
         for model in self.models:
@@ -102,7 +111,9 @@ class Strategy(abc.ABC):
         This should be overwritten with a function returning false is a stoploss or trailing stoploss is not used.
         This is used for optimizing the backtest.
         """
-        return last_signal == TradingSignal.BUY and (self.stop_loss is not None or self.take_profit is not None)
+        return last_signal == TradingSignal.BUY and (
+            self.stop_loss is not None or self.take_profit is not None
+        )
 
     @staticmethod
     def get_last_trade(

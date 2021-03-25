@@ -16,6 +16,14 @@ class PricePredictor(Strategy):
             PricePreditionLSTMModel(target_name="high"),
         )
 
+    def on_candlestick(
+        self, candlesticks: pd.DataFrame, trades: pd.DataFrame
+    ) -> Optional[Tuple[TradingSignal, str]]:
+        features = self.generate_features(
+            candlesticks.tail(500)
+        )  # Added here to not recompute all features only the last 500
+        return self.on_candlestick_with_features(candlesticks, features, trades)
+
     def on_candlestick_with_features_and_perdictions(
         self,
         candlesticks: pd.DataFrame,
