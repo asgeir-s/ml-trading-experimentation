@@ -129,31 +129,50 @@ class LiveRunner:
         order: Dict[str, Any]
         if signal == TradingSignal.BUY:
             # buy as much we can with the available
-            quantity = float(self.binance_client.get_asset_balance(asset=self.base_asset)["free"])
+            quantity_base_asset = float(
+                self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
+            )
+            worst_acceptable_price = float(last_price) * 1.02  # max 2 % up
+            quantity = float(quantity_base_asset) / worst_acceptable_price
             # make sure we round down by removing the last two digits https://github.com/sammchardy/python-binance/issues/219
             quantity_str = f"{quantity:.8f}"[:-2]
             print(
-                f"ORDER: Market buy! use {quantity_str} {self.base_asset} to buy as much {self.asset} we can"
+                f"ORDER: Limit buy! Buy {quantity_str} {self.asset} using up to {quantity_base_asset} {self.asset}"
             )
-            order = self.binance_client.order_market_buy(
-                symbol=self.tradingpair, quoteOrderQty=quantity_str
+            order = self.binance_client.order_limit_buy(
+                symbol=self.tradingpair,
+                quantity=quantity_str,
+                timeInForce="GTC",
+                price=worst_acceptable_price,
             )
         elif signal == TradingSignal.SELL:
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
-            quantity_str = f"{quantity:.8f}"[:-2]  # make sure we round down https://github.com/sammchardy/python-binance/issues/219
+            # make sure we round down https://github.com/sammchardy/python-binance/issues/219
+            quantity_str = f"{quantity:.8f}"[:-2]
+            worst_acceptable_price = float(last_price) * 0.97  # max 3 % down
             print(
-                f"ORDER: Market sell! {quantity_str} {self.asset} for as much {self.base_asset} we can"
+                f"ORDER: Limit sell! Sell {quantity_str} {self.asset} with a worst accaptable price of {worst_acceptable_price} {self.base_asset}."
             )
-            order = self.binance_client.order_market_sell(
-                symbol=self.tradingpair, quantity=quantity_str
+            order = self.binance_client.order_limit_sell(
+                symbol=self.tradingpair,
+                quantity=quantity_str,
+                timeInForce="GTC",
+                price=worst_acceptable_price,
             )
 
         assert order is not None, "Order can not be none here."
 
+        sleep_times = 0
         while order["status"] not in ("FILLED", "CANCELED", "REJECTED", "EXPIRED"):
             order = self.binance_client.get_order(symbol=self.tradingpair, orderId=order["orderId"])
             print("ORDER status: " + order["status"])
-            time.sleep(2 * 60)
+            if sleep_times >= 3:
+                self.binance_client.cancel_order(symbol=self.tradingpair, orderId=order["orderId"])
+                print(f"The order was cancled. Because it was not filled within {2*3} min")
+                sleep_times = 0
+            else:
+                time.sleep(2 * 60)  # 2 min
+                sleep_times = sleep_times + 1
 
         if order["status"] == "FILLED":
             print("Order successfully executed!:")
