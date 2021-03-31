@@ -12,6 +12,9 @@ class Strategy(abc.ABC):
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
     models: Tuple[Model, ...] = ()
+    min_value_asset: float = 0.0002
+    min_value_base_asset: float = 0.0002
+    backtest: bool = False
 
     @abc.abstractmethod
     def __post_init__(self) -> None:
@@ -23,17 +26,19 @@ class Strategy(abc.ABC):
         """
         Should be called when sitting up a strategy.
         """
+        print("min_value_base_asset:", self.min_value_base_asset)
+        print("min_value_asset:", self.min_value_asset)
         self.__train(candlesticks, features)
 
     def on_candlestick(
-        self, candlesticks: pd.DataFrame, trades: pd.DataFrame
+        self, candlesticks: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
     ) -> Optional[Tuple[TradingSignal, str]]:
         """All or a window of candlesticks up until the newest (.tail(1)) and all earlyer signals."""
         features = self.generate_features(candlesticks)
-        return self.on_candlestick_with_features(candlesticks, features, trades)
+        return self.on_candlestick_with_features(candlesticks, features, trades, status)
 
     def on_candlestick_with_features(
-        self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
     ) -> Optional[Tuple[TradingSignal, str]]:
         """
         It calls the __train method every nth execution.
@@ -62,7 +67,7 @@ class Strategy(abc.ABC):
         # print(predictions)
 
         return self.on_candlestick_with_features_and_perdictions(
-            candlesticks, features, trades, predictions
+            candlesticks, features, trades, predictions, status
         )
 
     @abc.abstractmethod
@@ -72,6 +77,7 @@ class Strategy(abc.ABC):
         features: pd.DataFrame,
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
+        status: Dict = {}
     ) -> Optional[Tuple[TradingSignal, str]]:
         """
         (mostly) Internal method for calling with the features and the predictions.

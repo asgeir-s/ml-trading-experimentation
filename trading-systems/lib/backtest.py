@@ -63,7 +63,9 @@ class Backtest:
                 )
                 if targets is not None
                 else strategy.on_candlestick_with_features(
-                    candlesticks=period_candlesticks, features=period_features, trades=trades
+                    candlesticks=period_candlesticks,
+                    features=period_features,
+                    trades=trades,
                 )
             )
             NEXT_PERIODE = candlesticks.iloc[: position + 1].tail(1)

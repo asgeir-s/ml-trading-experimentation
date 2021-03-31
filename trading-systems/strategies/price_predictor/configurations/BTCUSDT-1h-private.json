@@ -1,0 +1,9 @@
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/private.json",
+    "baseAsset": "USDT",
+    "minValueBaseAsset": "1",
+    "asset": "BTC",
+    "minValueAsset": "0.0001",
+    "candleInterval": "1h"
+}

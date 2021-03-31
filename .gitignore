@@ -2,3 +2,4 @@
 trading-systems/secrets.json
 **/.mypy_cache/**
 **/.DS_Store
+trading-systems/secrets/**

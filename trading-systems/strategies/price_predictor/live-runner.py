@@ -4,19 +4,28 @@ from lib.live_runner import LiveRunner
 import pandas as pd
 import json
 from binance.client import Client
+import sys
 
-TRADING_STRATEGY_INSTANCE_NAME = "price_predictor_runner_1"
+configuration_file_path = sys.argv[1]
 
-ASSET = "BTC"
-BASE_ASSET = "USDT"
-
-candlestick_interval = "1h"
 candlesticks: pd.DataFrame
 trades: pd.DataFrame
 
 
-def main(binance_client):
-    strategy = Strategy()
+def main(binance_client, config):
+    TRADING_STRATEGY_INSTANCE_NAME = config["name"]
+    ASSET = config["asset"]
+    BASE_ASSET = config["baseAsset"]
+    candlestick_interval = config["candleInterval"]
+
+    print("Trading system name: ", TRADING_STRATEGY_INSTANCE_NAME)
+    print("Asset: ", ASSET)
+    print("Base Asset: ", BASE_ASSET)
+    print("candlesticks interval: ", candlestick_interval)
+
+    strategy = Strategy(
+        min_value_asset=config["minValueAsset"], min_value_base_asset=config["minValueBaseAsset"]
+    )
 
     print("Start loading candlesticks")
     candlesticks = data_util.load_candlesticks(
@@ -48,8 +57,10 @@ def main(binance_client):
 
 
 if __name__ == "__main__":
-    with open("./secrets.json") as json_file:
-        data = json.load(json_file)
-        binance_secrets = data["binance"]
-        client = Client(binance_secrets["apiKey"], binance_secrets["apiSecret"])
-        main(client)
+    with open(configuration_file_path) as config_file:
+        configurations = json.load(config_file)
+        with open(configurations["binanceApiSecretPath"]) as secret_file:
+            secrets = json.load(secret_file)
+            binance_secrets = secrets["binance"]
+            client = Client(binance_secrets["apiKey"], binance_secrets["apiSecret"])
+            main(client, configurations)

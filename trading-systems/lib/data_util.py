@@ -107,7 +107,7 @@ def load_candlesticks(
 
 
 def add_candle(instrument: str, interval: str, new_candle: Dict):
-    print("\nNew candle:")
+    print(f"\nNew candle for {instrument} @ {interval}:")
     print(new_candle)
     candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
         new_candle, ignore_index=True

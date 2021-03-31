@@ -17,13 +17,13 @@ class PricePredictor(Strategy):
         )
 
     def on_candlestick(
-        self, candlesticks: pd.DataFrame, trades: pd.DataFrame
+        self, candlesticks: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
     ) -> Optional[Tuple[TradingSignal, str]]:
         candlestics_to_use = candlesticks.tail(300).reset_index().drop(columns=["index"])
         features = self.generate_features(
             candlestics_to_use
         )  # Added here to not recompute all features only the last 1000
-        return self.on_candlestick_with_features(candlesticks, features, trades)
+        return self.on_candlestick_with_features(candlesticks, features, trades, status)
 
     def on_candlestick_with_features_and_perdictions(
         self,
@@ -31,38 +31,37 @@ class PricePredictor(Strategy):
         features: pd.DataFrame,
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
+        status: Dict = {},
     ) -> Optional[Tuple[TradingSignal, str]]:
+        asset_balance = status.get("asset_balance", None)
+        base_asset_balance = status.get("base_asset_balance", None)
         last_time, last_signal, last_price = self.get_last_trade(trades)
 
-        if last_signal is None:
-            # TODO: find a way to set this automatic on first run. For now this must be adjusted to fit the position on the exchange on the first run.
-            last_signal = TradingSignal.SELL
-            print(
-                f"WARNING: theire are no previous trades for this tradingsystem. The position on the exchange needs to be {last_signal}"
-            )
+        # if we ar in
+        if self.backtest:
+            last_time, last_signal, last_price = self.get_last_trade(trades)
+            asset_balance = 1 if last_signal == TradingSignal.BUY else 0
+            base_asset_balance = 1 if last_signal == TradingSignal.SELL else 0
+        else:
+            asset_balance = status.get("asset_balance", None)
+            base_asset_balance = status.get("base_asset_balance", None)
 
         close_prediction = predictions[self.models[0]]
         lowest_min_prediction = predictions[self.models[1]]
         highest_high_prediction = predictions[self.models[2]]
 
-        print("close_preditcion:", close_prediction)
-        print("lowest_min_prediction:", lowest_min_prediction)
-        print("highest_high:", highest_high_prediction)
-        print("current position (last signal):", last_signal)
+        print("Close_preditcion:", close_prediction)
+        print("Lowest_min_prediction:", lowest_min_prediction)
+        print("Highest_high:", highest_high_prediction)
+        print(f"Base asset balance:", base_asset_balance)
+        print(f"Asset balance:", asset_balance)
 
         if np.nan in (close_prediction, lowest_min_prediction, highest_high_prediction):
             print("THE PREDITED VALUE IS NAN!!")
-            print(f"lastsignal: {last_signal}")
-            print(f"last_trade_price: {last_price}")
-            print(f"close prediction: {close_prediction}")
-            print(f"lowestlow: {lowest_min_prediction}")
-            print(f"highesthigh: {highest_high_prediction}")
-            print(features.last())
-            print(candlesticks.last())
 
         signal: Optional[Tuple[TradingSignal, str]] = None
         if (
-            last_signal == TradingSignal.SELL
+            base_asset_balance > self.min_value_base_asset
             and highest_high_prediction > 1
             and (
                 highest_high_prediction > (2.0 * (lowest_min_prediction * -1))
@@ -83,12 +82,7 @@ class PricePredictor(Strategy):
                 TradingSignal.BUY,
                 "Its predicted that the highest high will be more then two times the lowest low and the close price is expected to be highter",
             )
-        elif (
-            last_signal == TradingSignal.BUY
-            and close_prediction < -0.1
-            # and (lowest_min_prediction * -1) > highest_high_prediction * 1.2
-            # and lowest_min_prediction < -0.6
-        ):
+        elif asset_balance > self.min_value_asset and close_prediction < -0.1:
             current_price = candlesticks.tail(1)["close"].values[0]
             print(f"Sell signal at: {current_price}")
             print(f"close prediction: {close_prediction}")

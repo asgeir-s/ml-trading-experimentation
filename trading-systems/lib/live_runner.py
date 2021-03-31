@@ -1,6 +1,9 @@
 from binance.client import Client
 from typing import Any, Optional, Dict, Tuple
 from binance.websockets import BinanceSocketManager
+import math
+
+from tensorflow.python.ops.gen_spectral_ops import fft
 from lib.strategy import Strategy
 from lib.tradingSignal import TradingSignal
 from lib import data_util
@@ -17,6 +20,8 @@ class LiveRunner:
     candlestick_interval: str
     strategy: Strategy
     binance_client: Client
+    decimals_asset_quantity: int = 6
+    decimals_base_asset_price: int = 6
 
     __current_position: Optional[TradingSignal] = None
     binance_socket_manager: Any = None
@@ -58,6 +63,16 @@ class LiveRunner:
             interval=self.candlestick_interval,
             binance_client=self.binance_client,
         )
+
+        self.decimals_asset_quantity = self.getDecimalsForCoinQuantity(self.asset + self.base_asset)
+        self.decimals_base_asset_price = self.getDecimalsForCoinPrice(self.base_asset)
+
+        print(
+            f"Number of decimals for asset price (in {self.base_asset}):",
+            self.decimals_base_asset_price,
+        )
+        print(f"Number of decimals for quantity (in {self.asset}):", self.decimals_asset_quantity)
+
         print(f"Current position is (last signal): {self.current_position}")
         self.binance_socket_manager = BinanceSocketManager(self.binance_client)
         # start any sockets here, i.e a trade socket
@@ -69,6 +84,28 @@ class LiveRunner:
         self.binance_socket_connection_key = connection_key
         self.binance_socket_manager.start()
         return connection_key
+
+    def getDecimalsForCoinQuantity(self, instrument: str):
+        info = self.binance_client.get_symbol_info(instrument)
+        step_size = [
+            float(_["stepSize"]) for _ in info["filters"] if _["filterType"] == "LOT_SIZE"
+        ][0]
+        step_size = "%.8f" % step_size
+        step_size = step_size.rstrip("0")
+        decimals = len(step_size.split(".")[1])
+        return decimals
+
+    def getDecimalsForCoinPrice(self, coin: str):
+        if coin == "USDT":
+            return 2
+        info = self.binance_client.get_symbol_info("%sUSDT" % coin)
+        step_size = [
+            float(_["stepSize"]) for _ in info["filters"] if _["filterType"] == "LOT_SIZE"
+        ][0]
+        step_size = "%.8f" % step_size
+        step_size = step_size.rstrip("0")
+        decimals = len(step_size.split(".")[1])
+        return decimals
 
     @staticmethod
     def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
@@ -110,8 +147,14 @@ class LiveRunner:
                     print(
                         "WARNING: there are no trades for this trading system yet. The current position on the exchange needs to match whats specified in the strategy if there are no trades."
                     )
+                asset_balance = self.binance_client.get_asset_balance(asset=self.asset)["free"]
+                base_asset_balance = self.binance_client.get_asset_balance(asset=self.base_asset)[
+                    "free"
+                ]
 
-                signal_tuple = self.strategy.on_candlestick(self.candlesticks, trades)
+                status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
+
+                signal_tuple = self.strategy.on_candlestick(self.candlesticks, trades, status)
                 print("*", end="", flush=True)
             else:
                 signal_tuple = self.strategy.on_tick(current_close_price, self.current_position)
@@ -123,6 +166,18 @@ class LiveRunner:
             else:
                 print(".", end="", flush=True)
 
+    def round_quantity(self, quantity: float) -> float:
+        return (
+            math.floor(quantity * 10 ** self.decimals_asset_quantity)
+            / 10 ** self.decimals_asset_quantity
+        )
+
+    def round_price(self, price: float) -> float:
+        return (
+            math.floor(price * 10 ** self.decimals_base_asset_price)
+            / 10 ** self.decimals_base_asset_price
+        )
+
     def place_order(self, signal: TradingSignal, last_price: float, reason: str):
         print(f"Placing new order: signal: {signal}")
         print(f"Reason: {reason}")
@@ -133,31 +188,38 @@ class LiveRunner:
                 self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
             )
             worst_acceptable_price = float(last_price) * 1.02  # max 2 % up
+            # worst_acceptable_price_str = f"{worst_acceptable_price:.8f}"[:-2]
+            worst_acceptable_price_str = self.round_price(worst_acceptable_price)
             quantity = float(quantity_base_asset) / worst_acceptable_price
             # make sure we round down by removing the last two digits https://github.com/sammchardy/python-binance/issues/219
-            quantity_str = f"{quantity:.8f}"[:-2]
+            # quantity_str = f"{quantity:.8f}"[:-2]
+            quantity_str = self.round_quantity(quantity)
+
             print(
-                f"ORDER: Limit buy! Buy {quantity_str} {self.asset} using up to {quantity_base_asset} {self.asset}"
+                f"ORDER: Limit buy! Buy {quantity_str} {self.asset} at a maximum price of {worst_acceptable_price_str} {self.base_asset}"
             )
             order = self.binance_client.order_limit_buy(
                 symbol=self.tradingpair,
                 quantity=quantity_str,
                 timeInForce="GTC",
-                price=worst_acceptable_price,
+                price=worst_acceptable_price_str,
             )
         elif signal == TradingSignal.SELL:
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
             # make sure we round down https://github.com/sammchardy/python-binance/issues/219
-            quantity_str = f"{quantity:.8f}"[:-2]
+            # quantity_str = f"{quantity:.8f}"[:-2]
+            quantity_str = self.round_quantity(quantity)
             worst_acceptable_price = float(last_price) * 0.97  # max 3 % down
+            # worst_acceptable_price_str = f"{worst_acceptable_price:.8f}"[:-2]
+            worst_acceptable_price_str = self.round_price(worst_acceptable_price)
             print(
-                f"ORDER: Limit sell! Sell {quantity_str} {self.asset} with a worst accaptable price of {worst_acceptable_price} {self.base_asset}."
+                f"ORDER: Limit sell! Sell {quantity_str} {self.asset} at a minimum price of {worst_acceptable_price_str} {self.base_asset}."
             )
             order = self.binance_client.order_limit_sell(
                 symbol=self.tradingpair,
                 quantity=quantity_str,
                 timeInForce="GTC",
-                price=worst_acceptable_price,
+                price=worst_acceptable_price_str,
             )
 
         assert order is not None, "Order can not be none here."
@@ -213,7 +275,7 @@ class LiveRunner:
             "timeInForce": str(order["timeInForce"]),
             "type": str(order["type"]),
             "side": str(order["side"]),
-            "reason": str(reason)
+            "reason": str(reason),
         }
 
     @staticmethod

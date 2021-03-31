@@ -3,38 +3,33 @@ import os, sys
 
 sys.path.insert(0, os.path.abspath("../.."))
 
+# %% CONFIG
+from strategies import PricePredictor as Strategy
+
+SYMBOL = "LTCBTC"
+CANDLESTICKS_INTERVAL = "1h"
+trade_start_position = 20000
+forward_look_for_target: int = 4  # number of missing targets at the end
+
 # %%
 from lib.data_util import load_candlesticks
 from lib.backtest import Backtest, setup_file_path
 from lib.charting import chartTrades
-import pathlib
-import pandas as pd
 from binance.client import Client
-
-# %%
-# from strategies import First as Strategy
-# from strategies import Second as Strategy
-# from strategies import Third as Strategy
-from strategies import PricePredictor as Strategy
-
-# from strategies import UpDownDoubleSpiral as Strategy
 
 # %%
 client = Client()
 
 # %%
-strategy = Strategy()
+strategy = Strategy(backtest=True)
 tmp_path = "./tmp/" + strategy.__class__.__name__ + "/"
 
 path_builder = setup_file_path(tmp_path)
 
 # %%
 candlesticks = load_candlesticks(
-    "BTCUSDT", "1h", custom_data_path="../../tmp", binance_client=client
+    SYMBOL, CANDLESTICKS_INTERVAL, custom_data_path="../../tmp", binance_client=client
 )
-
-forward_look_for_target: int = 4
-trade_start_position = 20000
 
 features = strategy.generate_features(candlesticks)[:-forward_look_for_target]
 # targets = strategy._generate_targets(candlesticks, features)
@@ -81,7 +76,10 @@ signals = Backtest.run(
 # path_builder = None
 
 # %%
-# signals = pd.read_csv("./tmp/PricePredictor/2021-03-22-14:53:36-signals.csv", index_col=[0])
+if path_builder is None:
+    path_builder = setup_file_path(tmp_path)
+
+# signals = pd.read_csv("./tmp/PricePredictor/2021-03-26-14:26:30-signals.csv", index_col=[0])
 
 trades = Backtest.evaluate(signals, candlesticks, trade_start_position, trade_end_position, 0.001)
 trades.to_csv(path_builder("trades"))
@@ -101,5 +99,3 @@ trades
 
 # %%
 trades.describe()
-
-# %%
