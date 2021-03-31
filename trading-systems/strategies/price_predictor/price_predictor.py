@@ -22,6 +22,8 @@ class PricePredictor(Strategy):
         self.close_prediction_sell_threshold = float(
             self.configurations["closePredictionSellThreshold"]
         )
+        print("Highest High buy threshold:", self.highest_high_buy_threshold)
+        print("Close prediction sell threshold:", self.close_prediction_sell_threshold)
 
     def on_candlestick(
         self, candlesticks: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
@@ -42,9 +44,9 @@ class PricePredictor(Strategy):
     ) -> Optional[Tuple[TradingSignal, str]]:
         if self.backtest:
             last_time, last_signal, last_price = self.get_last_trade(trades)
-            asset_balance = 1 if last_signal == TradingSignal.BUY else 0
+            asset_balance = 10 if last_signal == TradingSignal.BUY else 0
             base_asset_balance = (
-                1 if (last_signal == TradingSignal.SELL or last_signal is None) else 0
+                10 if (last_signal == TradingSignal.SELL or last_signal is None) else 0
             )
         else:
             asset_balance = status["asset_balance"]
@@ -59,6 +61,8 @@ class PricePredictor(Strategy):
         print("Highest_high:", highest_high_prediction)
         print(f"Base asset balance:", base_asset_balance)
         print(f"Asset balance:", asset_balance)
+        print("min_value_base_asset:", self.min_value_base_asset)
+        print("highest_high_buy_threshold:", self.highest_high_buy_threshold)
 
         if np.nan in (close_prediction, lowest_min_prediction, highest_high_prediction):
             print("THE PREDITED VALUE IS NAN!!")
