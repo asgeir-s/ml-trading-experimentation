@@ -1,6 +1,6 @@
 import pandas as pd
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from lib.tradingSignal import TradingSignal
 from typing import Optional, Any, Tuple, Dict
 from lib.model import Model
@@ -15,6 +15,8 @@ class Strategy(abc.ABC):
     min_value_asset: float = 0.0002
     min_value_base_asset: float = 0.0002
     backtest: bool = False
+    configurations: Dict[str, str] = field(default_factory=dict)
+
 
     @abc.abstractmethod
     def __post_init__(self) -> None:

@@ -5,5 +5,11 @@
     "minValueBaseAsset": "1",
     "asset": "BTC",
     "minValueAsset": "0.0001",
-    "candleInterval": "1h"
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -1,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    }
 }

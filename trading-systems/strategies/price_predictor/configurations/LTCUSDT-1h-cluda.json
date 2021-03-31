@@ -5,5 +5,11 @@
     "minValueBaseAsset": "1",
     "asset": "LTC",
     "minValueAsset": "0.01",
-    "candleInterval": "1h"
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.2,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    }
 }

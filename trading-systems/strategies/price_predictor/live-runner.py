@@ -16,20 +16,24 @@ def main(binance_client, config):
     TRADING_STRATEGY_INSTANCE_NAME = config["name"]
     ASSET = config["asset"]
     BASE_ASSET = config["baseAsset"]
-    candlestick_interval = config["candleInterval"]
+    CANDLESTICK_INTERVAL = config["candleInterval"]
+    MIN_VALUE_ASSET = float(config["minValueAsset"])
+    MIN_VALUE_BASE_ASSET = float(config["minValueBaseAsset"])
 
     print("Trading system name: ", TRADING_STRATEGY_INSTANCE_NAME)
     print("Asset: ", ASSET)
     print("Base Asset: ", BASE_ASSET)
-    print("candlesticks interval: ", candlestick_interval)
+    print("candlesticks interval: ", CANDLESTICK_INTERVAL)
 
     strategy = Strategy(
-        min_value_asset=config["minValueAsset"], min_value_base_asset=config["minValueBaseAsset"]
+        min_value_asset=MIN_VALUE_ASSET,
+        min_value_base_asset=MIN_VALUE_BASE_ASSET,
+        configurations=config,
     )
 
     print("Start loading candlesticks")
     candlesticks = data_util.load_candlesticks(
-        instrument=ASSET + BASE_ASSET, interval=candlestick_interval, binance_client=binance_client
+        instrument=ASSET + BASE_ASSET, interval=CANDLESTICK_INTERVAL, binance_client=binance_client
     )
     print("Finished loading candlesticks")
 
@@ -48,7 +52,7 @@ def main(binance_client, config):
         trading_strategy_instance_name=TRADING_STRATEGY_INSTANCE_NAME,
         asset=ASSET,
         base_asset=BASE_ASSET,
-        candlestick_interval=candlestick_interval,
+        candlestick_interval=CANDLESTICK_INTERVAL,
         binance_client=binance_client,
         strategy=strategy,
     )

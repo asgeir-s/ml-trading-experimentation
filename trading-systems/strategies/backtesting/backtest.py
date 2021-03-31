@@ -18,17 +18,17 @@ from lib.charting import chartTrades
 from binance.client import Client
 
 # %%
-client = Client()
+# client = Client()
 
 # %%
 strategy = Strategy(backtest=True)
-tmp_path = "./tmp/" + strategy.__class__.__name__ + "/"
+tmp_path = "./tmp/" + strategy.__class__.__name__ + "-" + SYMBOL + "-" + CANDLESTICKS_INTERVAL + "/"
 
 path_builder = setup_file_path(tmp_path)
 
 # %%
 candlesticks = load_candlesticks(
-    SYMBOL, CANDLESTICKS_INTERVAL, custom_data_path="../../tmp", binance_client=client
+    SYMBOL, CANDLESTICKS_INTERVAL, custom_data_path="../../tmp", #binance_client=client
 )
 
 features = strategy.generate_features(candlesticks)[:-forward_look_for_target]
@@ -63,17 +63,6 @@ signals = Backtest.run(
     end_position=trade_end_position,
     signals_csv_path=path_builder("signals"),
 )
-# signals = Backtest._runWithTarget(
-#     strategy=strategy,
-#     features=features,
-#     targets=targets,
-#     candlesticks=candlesticks,
-#     start_position=trade_start_position,
-#     end_position=trade_end_position,
-#     signals_csv_path=strategy_tmp_path + "signals.csv",
-# )
-
-# path_builder = None
 
 # %%
 if path_builder is None:
@@ -99,3 +88,5 @@ trades
 
 # %%
 trades.describe()
+
+# %%

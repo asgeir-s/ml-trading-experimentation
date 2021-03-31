@@ -9,11 +9,18 @@ import numpy as np
 
 @dataclass
 class PricePredictor(Strategy):
+    highest_high_buy_threshold: float = 1
+    close_prediction_sell_threshold: float = 1
+
     def __post_init__(self) -> None:
         self.models = (
             PricePreditionLSTMModel(target_name="close", forward_look_for_target=1),
             PricePreditionLSTMModel(target_name="low"),
             PricePreditionLSTMModel(target_name="high"),
+        )
+        self.highest_high_buy_threshold = float(self.configurations["highestHighBuyThreshold"])
+        self.close_prediction_sell_threshold = float(
+            self.configurations["closePredictionSellThreshold"]
         )
 
     def on_candlestick(
@@ -33,18 +40,15 @@ class PricePredictor(Strategy):
         predictions: Dict[Any, float],
         status: Dict = {},
     ) -> Optional[Tuple[TradingSignal, str]]:
-        asset_balance = status.get("asset_balance", None)
-        base_asset_balance = status.get("base_asset_balance", None)
-        last_time, last_signal, last_price = self.get_last_trade(trades)
-
-        # if we ar in
         if self.backtest:
             last_time, last_signal, last_price = self.get_last_trade(trades)
             asset_balance = 1 if last_signal == TradingSignal.BUY else 0
-            base_asset_balance = 1 if last_signal == TradingSignal.SELL else 0
+            base_asset_balance = (
+                1 if (last_signal == TradingSignal.SELL or last_signal is None) else 0
+            )
         else:
-            asset_balance = status.get("asset_balance", None)
-            base_asset_balance = status.get("base_asset_balance", None)
+            asset_balance = status["asset_balance"]
+            base_asset_balance = status["base_asset_balance"]
 
         close_prediction = predictions[self.models[0]]
         lowest_min_prediction = predictions[self.models[1]]
@@ -62,7 +66,7 @@ class PricePredictor(Strategy):
         signal: Optional[Tuple[TradingSignal, str]] = None
         if (
             base_asset_balance > self.min_value_base_asset
-            and highest_high_prediction > 1
+            and highest_high_prediction > self.highest_high_buy_threshold
             and (
                 highest_high_prediction > (2.0 * (lowest_min_prediction * -1))
                 or lowest_min_prediction > 0
@@ -73,21 +77,18 @@ class PricePredictor(Strategy):
             self.stop_loss = current_price * ((100 + lowest_min_prediction * 1.05)) / 100
             # self.take_profit = current_price * ((100 + highest_high_prediction * 0.95)) / 100
             print(f"Buy signal at: {current_price}")
-            print("stoploss: ", self.stop_loss)
-            print("take_profit: ", self.take_profit)
-            print(f"close prediction: {close_prediction}")
-            print(f"lowestlow: {lowest_min_prediction}")
-            print(f"highesthigh: {highest_high_prediction}")
+            print("Stoploss: ", self.stop_loss)
+            print("Take_profit: ", self.take_profit)
             signal = (
                 TradingSignal.BUY,
                 "Its predicted that the highest high will be more then two times the lowest low and the close price is expected to be highter",
             )
-        elif asset_balance > self.min_value_asset and close_prediction < -0.1:
+        elif (
+            asset_balance > self.min_value_asset
+            and close_prediction < self.close_prediction_sell_threshold
+        ):
             current_price = candlesticks.tail(1)["close"].values[0]
             print(f"Sell signal at: {current_price}")
-            print(f"close prediction: {close_prediction}")
-            print(f"lowestlow: {lowest_min_prediction}")
-            print(f"highesthigh: {highest_high_prediction}")
             signal = (
                 TradingSignal.SELL,
                 "The close price is predicted to go down more then 0.1%",
