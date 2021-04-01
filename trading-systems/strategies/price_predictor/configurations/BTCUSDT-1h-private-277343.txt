@@ -1,0 +1,4 @@
+Starts with 100$ at 2019-12-02T12:00:00.000000000
+Ends with 277443.5022883163$ (number of trades: 1918) at 2021-04-01T01:59:59.999000000
+Earned 277343.5022883163$ (277343.5%)
+Percentage price change in period: 710.42%

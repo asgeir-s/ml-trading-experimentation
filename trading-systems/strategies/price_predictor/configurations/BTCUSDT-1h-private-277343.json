@@ -7,7 +7,7 @@
     "minValueAsset": 0.0001,
     "candleInterval": "1h",
     "highestHighBuyThreshold": 1,
-    "closePredictionSellThreshold": -1,
+    "closePredictionSellThreshold": -0.2,
     "backtest": {
         "startPosition": 20000,
         "missingTargetsAtTheEnd": 4
@@ -15,6 +15,6 @@
     "closeModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/close_1",
     "lowModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/low_1",
     "highModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/high_1",
-    "loadModelFromPath": "False",
+    "loadModelFromPath": "True",
     "saveModelToPath": "True"
 }

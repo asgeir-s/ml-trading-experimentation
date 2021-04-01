@@ -69,14 +69,18 @@ class PricePredictor(Strategy):
         lowest_min_prediction = predictions[self.models[1]]
         highest_high_prediction = predictions[self.models[2]]
 
+        current_price = candlesticks.tail(1)["close"].values[0]
+        # stop_loss_new = current_price * ((100 + lowest_min_prediction * 1.05)) / 100
+
+        # if self.stop_loss is not None and stop_loss_new > self.stop_loss:
+        #     self.stop_loss = stop_loss_new
+
         if not self.backtest:
-            print("Close_preditcion:", close_prediction)
-            print("Lowest_min_prediction:", lowest_min_prediction)
-            print("Highest_high:", highest_high_prediction)
+            print("Close preditcion:", close_prediction)
+            print("Lowest min prediction:", lowest_min_prediction)
+            print("Highest high:", highest_high_prediction)
             print(f"Base asset balance:", base_asset_balance)
             print(f"Asset balance:", asset_balance)
-            print("min_value_base_asset:", self.min_value_base_asset)
-            print("highest_high_buy_threshold:", self.highest_high_buy_threshold)
 
         if np.nan in (close_prediction, lowest_min_prediction, highest_high_prediction):
             print("THE PREDITED VALUE IS NAN!!")
@@ -91,7 +95,6 @@ class PricePredictor(Strategy):
             )
             and close_prediction > 0
         ):
-            current_price = candlesticks.tail(1)["close"].values[0]
             self.stop_loss = current_price * ((100 + lowest_min_prediction * 1.05)) / 100
             # self.take_profit = current_price * ((100 + highest_high_prediction * 0.95)) / 100
             print(f"Buy signal at: {current_price}")
@@ -109,6 +112,6 @@ class PricePredictor(Strategy):
             print(f"Sell signal at: {current_price}")
             signal = (
                 TradingSignal.SELL,
-                "The close price is predicted to go down more then 0.1%",
+                f"The close price is predicted to go down more then {self.close_prediction_sell_threshold}%",
             )
         return signal

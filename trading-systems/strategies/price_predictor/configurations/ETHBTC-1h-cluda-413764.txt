@@ -1,0 +1,85 @@
+
+Starts with 100$ at 2019-10-28T22:00:00.000000000
+Ends with 413864.40334957984$ (number of trades: 2001) at 2021-03-31T19:59:59.999000000
+Earned 413764.40334957984$ (413764.4%)
+Percentage price change in period: 66.44%
+
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/cluda.json",
+    "baseAsset": "BTC",
+    "minValueBaseAsset": 0.0001,
+    "asset": "ETH",
+    "minValueAsset": 0.001,
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.2,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    },
+    "closeModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/close_1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/low_1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/high_1",
+    "loadModelFromPath": "True",
+    "saveModelToPath": "True"
+}
+Starts with 100$ at 2019-10-28T22:00:00.000000000
+Ends with 297805.38050863607$ (number of trades: 2024) at 2021-04-01T09:59:59.999000000
+Earned 297705.38050863607$ (297705.38%)
+Percentage price change in period: 68.96%
+
+
+ 
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/cluda.json",
+    "baseAsset": "BTC",
+    "minValueBaseAsset": 0.0001,
+    "asset": "ETH",
+    "minValueAsset": 0.001,
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.5,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    },
+    "closeModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/close_1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/low_1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/high_1",
+    "loadModelFromPath": "True",
+    "saveModelToPath": "False"
+}
+Starts with 100$ at 2019-10-28T22:00:00.000000000
+Ends with 79751.01812610788$ (number of trades: 1633) at 2021-04-01T10:59:59.999000000
+Earned 79651.01812610788$ (79651.02%)
+Percentage price change in period: 68.78%
+
+
+
+
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/cluda.json",
+    "baseAsset": "BTC",
+    "minValueBaseAsset": 0.0001,
+    "asset": "ETH",
+    "minValueAsset": 0.001,
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.2,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    },
+    "closeModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/close_1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/low_1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/model_ETH-BTC/high_1",
+    "loadModelFromPath": "True",
+    "saveModelToPath": "True"
+}
+Starts with 100$ at 2019-10-28T22:00:00.000000000
+Ends with 443584.963622948$ (number of trades: 2060) at 2021-04-01T13:59:59.999000000
+Earned 443484.963622948$ (443484.96%)
+Percentage price change in period: 68.34%

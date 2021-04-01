@@ -133,7 +133,7 @@ def load_trades(instrument: str, interval: str, trading_strategy_instance_name: 
             trades[name] = trades[name].astype(
                 {
                     "orderId": int,
-                    "transactTime": int,
+                    "transactTime": str,
                     "price": float,
                     "signal": str,
                     "origQty": float,

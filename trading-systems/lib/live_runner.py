@@ -1,7 +1,9 @@
+import datetime
 from binance.client import Client
 from typing import Any, Optional, Dict, Tuple
 from binance.websockets import BinanceSocketManager
 import math
+import pandas as pd
 
 from tensorflow.python.ops.gen_spectral_ops import fft
 from lib.strategy import Strategy
@@ -147,10 +149,12 @@ class LiveRunner:
                     print(
                         "WARNING: there are no trades for this trading system yet. The current position on the exchange needs to match whats specified in the strategy if there are no trades."
                     )
-                asset_balance = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
-                base_asset_balance = float(self.binance_client.get_asset_balance(asset=self.base_asset)[
-                    "free"
-                ])
+                asset_balance = float(
+                    self.binance_client.get_asset_balance(asset=self.asset)["free"]
+                )
+                base_asset_balance = float(
+                    self.binance_client.get_asset_balance(asset=self.base_asset)["free"]
+                )
 
                 status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
 
@@ -266,7 +270,9 @@ class LiveRunner:
 
         return {
             "orderId": int(order["orderId"]),
-            "transactTime": int(order["transactTime"]),
+            "transactTime": pd.to_datetime(
+                order["transactTime"], unit="ms"
+            ),  # datetime.datetime.fromtimestamp(float(order["transactTime"]) / 1000.0),
             "price": avg_price,
             "signal": str(signal),
             "origQty": float(order["origQty"]),
