@@ -14,9 +14,22 @@ class PricePredictor(Strategy):
 
     def __post_init__(self) -> None:
         self.models = (
-            PricePreditionLSTMModel(target_name="close", forward_look_for_target=1),
-            PricePreditionLSTMModel(target_name="low"),
-            PricePreditionLSTMModel(target_name="high"),
+            PricePreditionLSTMModel(
+                target_name="close",
+                forward_look_for_target=1,
+                model_path=self.configurations["closeModelPath"],
+                should_save_model=(self.configurations["saveModelToPath"] == "True"),
+            ),
+            PricePreditionLSTMModel(
+                target_name="low",
+                model_path=self.configurations["lowModelPath"],
+                should_save_model=(self.configurations["saveModelToPath"] == "True"),
+            ),
+            PricePreditionLSTMModel(
+                target_name="high",
+                model_path=self.configurations["highModelPath"],
+                should_save_model=(self.configurations["saveModelToPath"] == "True"),
+            ),
         )
         self.highest_high_buy_threshold = float(self.configurations["highestHighBuyThreshold"])
         self.close_prediction_sell_threshold = float(
@@ -49,20 +62,21 @@ class PricePredictor(Strategy):
                 10 if (last_signal == TradingSignal.SELL or last_signal is None) else 0
             )
         else:
-            asset_balance = status["asset_balance"]
-            base_asset_balance = status["base_asset_balance"]
+            asset_balance = float(status["asset_balance"])
+            base_asset_balance = float(status["base_asset_balance"])
 
         close_prediction = predictions[self.models[0]]
         lowest_min_prediction = predictions[self.models[1]]
         highest_high_prediction = predictions[self.models[2]]
 
-        print("Close_preditcion:", close_prediction)
-        print("Lowest_min_prediction:", lowest_min_prediction)
-        print("Highest_high:", highest_high_prediction)
-        print(f"Base asset balance:", base_asset_balance)
-        print(f"Asset balance:", asset_balance)
-        print("min_value_base_asset:", self.min_value_base_asset)
-        print("highest_high_buy_threshold:", self.highest_high_buy_threshold)
+        if not self.backtest:
+            print("Close_preditcion:", close_prediction)
+            print("Lowest_min_prediction:", lowest_min_prediction)
+            print("Highest_high:", highest_high_prediction)
+            print(f"Base asset balance:", base_asset_balance)
+            print(f"Asset balance:", asset_balance)
+            print("min_value_base_asset:", self.min_value_base_asset)
+            print("highest_high_buy_threshold:", self.highest_high_buy_threshold)
 
         if np.nan in (close_prediction, lowest_min_prediction, highest_high_prediction):
             print("THE PREDITED VALUE IS NAN!!")

@@ -7,6 +7,8 @@ from typing import Any
 @dataclass  # type: ignore
 class Model(abc.ABC):
     model: Any = None
+    model_path: str = ".tmp/model_weights"
+    should_save_model: bool = False
 
     @abc.abstractmethod
     def __post_init__(self) -> None:
@@ -35,6 +37,14 @@ class Model(abc.ABC):
     @abc.abstractmethod
     def print_info(self) -> None:
         """Print or plot information about the current model."""
+
+    @abc.abstractmethod
+    def save_model(self) -> None:
+        """Save the model."""
+
+    @abc.abstractmethod
+    def load_model(self, number_of_inputs: int) -> None:
+        """Load a pre-trained the model."""
 
     # @staticmethod
     @abc.abstractmethod

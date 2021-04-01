@@ -168,7 +168,7 @@ class Backtest:
         )
 
         holding = 0
-        money = start_price
+        money = 100
         open_time = 0
         open_price = 0
         open_money = 0
@@ -197,11 +197,11 @@ class Backtest:
                 open_price = price
                 open_money = money
                 open_reason = reason
-                holding = (money - money * fee) / price
+                holding = (money - (money * fee)) / price
                 money = 0
             elif signal == TradingSignal.SELL:
                 print("signal is sell")
-                money = (holding - holding * fee) * price
+                money = (holding - (holding * fee)) * price
                 holding = 0
                 print("appending trade")
                 trades = trades.append(

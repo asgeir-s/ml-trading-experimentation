@@ -1,0 +1,6 @@
+STATS:
+Start with 140186847.42497787$ (number of trades: 2150) at 2021-03-31T14:59:59.999000000
+Earned 140186809.00497788$ (364879773.57%)
+Percentage price change in period: 401.02%
+
+WITHOUT RETRAINING:

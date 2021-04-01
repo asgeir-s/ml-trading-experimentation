@@ -95,6 +95,24 @@ class PricePreditionLSTMModel(Model):
     def __hash__(self) -> int:
         return hash(self.__class__.__name__) + hash(self.model)
 
+    def create_model(self, number_of_inputs: int, window_size: int):
+        inputs = keras.Input(shape=(window_size, number_of_inputs))
+        x = keras.layers.Conv1D(64, kernel_size=5, strides=1, padding="causal", activation="relu")(
+            inputs
+        )
+        x = keras.layers.LSTM(units=64, return_sequences=True)(x)
+        x = keras.layers.LSTM(units=64)(x)
+        x = keras.layers.Dense(32, activation="relu")(x)
+        x = keras.layers.Dense(12, activation="relu")(x)
+        outputs = keras.layers.Dense(1, activation="elu")(x)
+
+        model = keras.Model(inputs=inputs, outputs=outputs, name="close_price_prediction")
+
+        model.compile(
+            loss="mean_absolute_error", optimizer="adam", metrics=["mse", "mae"],
+        )
+        return model
+
     def train(self, features: pd.DataFrame, target: pd.Series):
         features_copy = features.copy()
         print("training start")
@@ -119,21 +137,7 @@ class PricePreditionLSTMModel(Model):
             tf.random.set_seed(51)
             np.random.seed(51)
 
-            inputs = keras.Input(shape=(self.window_size, number_of_inputs))
-            x = keras.layers.Conv1D(
-                64, kernel_size=5, strides=1, padding="causal", activation="relu"
-            )(inputs)
-            x = keras.layers.LSTM(units=64, return_sequences=True)(x)
-            x = keras.layers.LSTM(units=64)(x)
-            x = keras.layers.Dense(32, activation="relu")(x)
-            x = keras.layers.Dense(12, activation="relu")(x)
-            outputs = keras.layers.Dense(1, activation="elu")(x)
-
-            self.model = keras.Model(inputs=inputs, outputs=outputs, name="close_price_prediction")
-
-            self.model.compile(
-                loss="mean_absolute_error", optimizer="adam", metrics=["mse", "mae"],
-            )
+            self.model = self.create_model(number_of_inputs, self.window_size)
             self.model.fit(w1.dataset, batch_size=64, epochs=6)
 
         w2 = WindowGenerator(
@@ -146,6 +150,9 @@ class PricePreditionLSTMModel(Model):
 
         self.model.fit(w2.dataset, batch_size=64, epochs=1)
         print("training end")
+        if self.should_save_model:
+            self.save_model()
+            print("model save")
 
     def predict(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> float:
         # print("predit start")
@@ -206,6 +213,16 @@ class PricePreditionLSTMModel(Model):
             predictions = self.model.predict(inputs)
             print("predictions shape:", predictions.shape)
             print("predition[0][0]:", predictions[0][0])
+
+    def save_model(self) -> None:
+        """Save the model."""
+        self.model.save_weights(self.model_path)
+
+    def load_model(self, number_of_inputs: int) -> None:
+        """Load a pre-trained the model."""
+        print("loading modell")
+        self.model = self.create_model(number_of_inputs, self.window_size)
+        self.model.load_weights(self.model_path)
 
     def print_info(self) -> None:
         print("No info'")

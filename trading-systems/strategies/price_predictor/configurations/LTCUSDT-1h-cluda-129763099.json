@@ -1,0 +1,20 @@
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/cluda.json",
+    "baseAsset": "USDT",
+    "minValueBaseAsset": 1,
+    "asset": "LTC",
+    "minValueAsset": 0.01,
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.2,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    },
+    "closeModelPath": "./strategies/price_predictor/tmp/models/close_model_USDT-LTC1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/low_model_USDT-LTC1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/high_model_USDT-LTC1",
+    "loadModelFromPath": "True",
+    "saveModelToPath": "True"
+}

@@ -16,7 +16,7 @@ class Strategy(abc.ABC):
     min_value_base_asset: float = 0.0002
     backtest: bool = False
     configurations: Dict[str, str] = field(default_factory=dict)
-
+    first_run: bool = True
 
     @abc.abstractmethod
     def __post_init__(self) -> None:
@@ -40,7 +40,11 @@ class Strategy(abc.ABC):
         return self.on_candlestick_with_features(candlesticks, features, trades, status)
 
     def on_candlestick_with_features(
-        self, candlesticks: pd.DataFrame, features: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
+        self,
+        candlesticks: pd.DataFrame,
+        features: pd.DataFrame,
+        trades: pd.DataFrame,
+        status: Dict = {},
     ) -> Optional[Tuple[TradingSignal, str]]:
         """
         It calls the __train method every nth execution.
@@ -79,7 +83,7 @@ class Strategy(abc.ABC):
         features: pd.DataFrame,
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
-        status: Dict = {}
+        status: Dict = {},
     ) -> Optional[Tuple[TradingSignal, str]]:
         """
         (mostly) Internal method for calling with the features and the predictions.
@@ -157,9 +161,15 @@ class Strategy(abc.ABC):
             _,
             _,
         ) = split_features_and_target_into_train_and_test_set(features, targets, 0)
-
-        for model in self.models:
-            model.train(training_set_features, training_set_targets[model])
+        if (
+            self.configurations.get("loadModelFromPath", "False") == "True" and self.first_run
+        ):  # and is first run
+            for model in self.models:
+                model.load_model(len(training_set_features.columns))
+        else:
+            for model in self.models:
+                model.train(training_set_features, training_set_targets[model])
+        self.first_run = False
 
     def _generate_targets(
         self, candlesticks: pd.DataFrame, features: pd.DataFrame

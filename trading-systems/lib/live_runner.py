@@ -147,10 +147,10 @@ class LiveRunner:
                     print(
                         "WARNING: there are no trades for this trading system yet. The current position on the exchange needs to match whats specified in the strategy if there are no trades."
                     )
-                asset_balance = self.binance_client.get_asset_balance(asset=self.asset)["free"]
-                base_asset_balance = self.binance_client.get_asset_balance(asset=self.base_asset)[
+                asset_balance = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
+                base_asset_balance = float(self.binance_client.get_asset_balance(asset=self.base_asset)[
                     "free"
-                ]
+                ])
 
                 status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
 

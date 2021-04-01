@@ -37,7 +37,7 @@ def main(binance_client, config):
         configurations=config,
     )
     tmp_path = (
-        "./tmp/backtest/"
+        "./strategies/price_predictor/tmp/backtest/"
         + strategy.__class__.__name__
         + "-"
         + BASE_ASSET
