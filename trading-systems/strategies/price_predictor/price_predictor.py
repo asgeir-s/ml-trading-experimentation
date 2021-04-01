@@ -57,9 +57,9 @@ class PricePredictor(Strategy):
     ) -> Optional[Tuple[TradingSignal, str]]:
         if self.backtest:
             last_time, last_signal, last_price = self.get_last_trade(trades)
-            asset_balance = 10 if last_signal == TradingSignal.BUY else 0
+            asset_balance = 10.0 if last_signal == TradingSignal.BUY else 0.0
             base_asset_balance = (
-                10 if (last_signal == TradingSignal.SELL or last_signal is None) else 0
+                10.0 if (last_signal == TradingSignal.SELL or last_signal is None) else 0.0
             )
         else:
             asset_balance = float(status["asset_balance"])
