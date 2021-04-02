@@ -1,6 +1,6 @@
 import datetime
 from binance.client import Client
-from typing import Any, Optional, Dict, Tuple
+from typing import Any, Optional, Dict, Tuple, List
 from binance.websockets import BinanceSocketManager
 import math
 import pandas as pd
@@ -48,9 +48,9 @@ class LiveRunner:
             )
             last_trade_signal_saved = None if trades is None else trades.tail(1)
             print(f"Last saved trade is: {last_trade_signal_saved}")
-            assert last_trade_signal_saved is None or (
-                last_trade_signal_saved["signal"].values[0] == str(new_current_position)
-            ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
+            # assert last_trade_signal_saved is None or (
+            #     last_trade_signal_saved["signal"].values[0] == str(new_current_position)
+            # ), "The last trade in the trades dataframe and the current position on the exchange should be the same."
             self.current_position = new_current_position
             return self.current_position
 
@@ -183,6 +183,13 @@ class LiveRunner:
         )
 
     def place_order(self, signal: TradingSignal, last_price: float, reason: str):
+        open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
+        print(f"Closing {len(open_orders)} open trades for {self.tradingpair}")
+        for open_order in open_orders:
+            self.binance_client.cancel_order(symbol=self.tradingpair, orderId=open_order["orderId"])
+
+        self.wait_for_orders(open_orders)
+
         print(f"Placing new order: signal: {signal}")
         print(f"Reason: {reason}")
         order: Dict[str, Any]
@@ -228,17 +235,7 @@ class LiveRunner:
 
         assert order is not None, "Order can not be none here."
 
-        sleep_times = 0
-        while order["status"] not in ("FILLED", "CANCELED", "REJECTED", "EXPIRED"):
-            order = self.binance_client.get_order(symbol=self.tradingpair, orderId=order["orderId"])
-            print("ORDER status: " + order["status"])
-            if sleep_times >= 3:
-                self.binance_client.cancel_order(symbol=self.tradingpair, orderId=order["orderId"])
-                print(f"The order was cancled. Because it was not filled within {2*3} min")
-                sleep_times = 0
-            else:
-                time.sleep(2 * 60)  # 2 min
-                sleep_times = sleep_times + 1
+        order = self.wait_for_orders([order])[0]
 
         if order["status"] == "FILLED":
             print("Order successfully executed!:")
@@ -255,6 +252,34 @@ class LiveRunner:
         else:
             print("Order failed! :")
             print(order)
+
+    def wait_for_orders(
+        self,
+        orders: List[Any],
+        number_of_retry: int = 3,
+        sleep_seconds: int = 120,
+        accepted_statuses: List[str] = ["FILLED", "CANCELED", "REJECTED", "EXPIRED"],
+    ):
+        final_orders: List[Any] = []
+        sleep_times = 0
+        for order in orders:
+            while order["status"] not in accepted_statuses:
+                order = self.binance_client.get_order(
+                    symbol=self.tradingpair, orderId=order["orderId"]
+                )
+                print("ORDER status: " + order["status"])
+                if sleep_times >= number_of_retry:
+                    self.binance_client.cancel_order(
+                        symbol=self.tradingpair, orderId=order["orderId"]
+                    )
+                    print(f"The order was cancled. Because it was not filled within {2*3} min")
+                    sleep_times = 0
+                else:
+                    time.sleep(sleep_seconds)
+                    sleep_times = sleep_times + 1
+            final_orders = final_orders + [order]
+
+        return final_orders
 
     @staticmethod
     def order_to_trade(order: Any, signal: TradingSignal, reason: str = ""):
