@@ -24,6 +24,7 @@ class LiveRunner:
     binance_client: Client
     decimals_asset_quantity: int = 6
     decimals_base_asset_price: int = 6
+    active_stoploss_order_id: Optional[str] = None
 
     __current_position: Optional[TradingSignal] = None
     binance_socket_manager: Any = None
@@ -158,6 +159,26 @@ class LiveRunner:
 
                 status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
 
+                if self.active_stoploss_order_id is not None:
+                    stoploss_order = self.binance_client.get_order(
+                        symbol=self.tradingpair, orderId=self.active_stoploss_order_id
+                    )
+                    if stoploss_order["status"] == "FILLED":
+                        new_trade_dict = self.order_to_trade(
+                            stoploss_order, TradingSignal.SELL, "Stoploss executed"
+                        )
+
+                        data_util.add_trade(
+                            instrument=self.tradingpair,
+                            interval=self.candlestick_interval,
+                            trading_strategy_instance_name=self.trading_strategy_instance_name,
+                            new_trade_dict=new_trade_dict,
+                        )
+                        print("The active stoploss order has been filled. Its now added to the trades list.")
+                        self.active_stoploss_order_id = None
+                    else:
+                        print("There is a open stoploss order, but it has not been filled yet.")
+
                 signal_tuple = self.strategy.on_candlestick(self.candlesticks, trades, status)
                 print("*", end="", flush=True)
             else:
@@ -206,6 +227,7 @@ class LiveRunner:
 
         self.wait_for_orders(open_orders)
         print("Open orders closed")
+        self.active_stoploss_order_id = None
 
         print(f"Placing new order: signal: {signal}")
         print(f"Reason: {reason}")
@@ -291,6 +313,7 @@ class LiveRunner:
 
                 print("Stoploss order responds:")
                 print(order_res)
+                self.active_stoploss_order_id = order_res["orderId"]
 
                 # order = self.binance_client.get_order(
                 #     symbol=self.tradingpair, orderId=order_res["orderId"]
