@@ -37,7 +37,7 @@ def main(binance_client, config):
     )
     print("Finished loading candlesticks")
 
-    print("Start generatinf features")
+    print("Start generating features")
     features = strategy.generate_features(candlesticks)
     print("Finished generating features")
 

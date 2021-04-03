@@ -51,7 +51,7 @@ def main(binance_client, config):
     print("Start loading candlesticks")
     candlesticks = data_util.load_candlesticks(
         instrument=ASSET + BASE_ASSET,
-        interval=CANDLESTICK_INTERVAL,  # binance_client=binance_client
+        interval=CANDLESTICK_INTERVAL, # binance_client=binance_client
     )
     print("Finished loading candlesticks")
 

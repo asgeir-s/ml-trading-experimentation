@@ -40,7 +40,7 @@ class PricePredictor(Strategy):
 
     def on_candlestick(
         self, candlesticks: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
-    ) -> Optional[Tuple[TradingSignal, str]]:
+    ) -> Optional[Tuple[TradingSignal, str, Optional[float]]]:
         candlestics_to_use = candlesticks.tail(300).reset_index().drop(columns=["index"])
         features = self.generate_features(
             candlestics_to_use
@@ -54,7 +54,7 @@ class PricePredictor(Strategy):
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
         status: Dict = {},
-    ) -> Optional[Tuple[TradingSignal, str]]:
+    ) -> Optional[Tuple[TradingSignal, str, Optional[float]]]:
         if self.backtest:
             last_time, last_signal, last_price = self.get_last_trade(trades)
             asset_balance = 10.0 if last_signal == TradingSignal.BUY else 0.0
@@ -85,7 +85,7 @@ class PricePredictor(Strategy):
         if np.nan in (close_prediction, lowest_min_prediction, highest_high_prediction):
             print("THE PREDITED VALUE IS NAN!!")
 
-        signal: Optional[Tuple[TradingSignal, str]] = None
+        signal: Optional[Tuple[TradingSignal, str, Optional[float]]] = None
         if (
             base_asset_balance > self.min_value_base_asset
             and highest_high_prediction > self.highest_high_buy_threshold
@@ -103,6 +103,7 @@ class PricePredictor(Strategy):
             signal = (
                 TradingSignal.BUY,
                 "Its predicted that the highest high will be more then two times the lowest low and the close price is expected to be highter",
+                self.stop_loss
             )
         elif (
             asset_balance > self.min_value_asset
@@ -113,5 +114,7 @@ class PricePredictor(Strategy):
             signal = (
                 TradingSignal.SELL,
                 f"The close price is predicted to go down more then {self.close_prediction_sell_threshold}%",
+                None
             )
+            self.stop_loss = None
         return signal

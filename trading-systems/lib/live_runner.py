@@ -131,7 +131,7 @@ class LiveRunner:
             self.binance_socket_manager.close()
             self.start()
         else:
-            signal_tuple: Optional[Tuple[TradingSignal, str]] = None
+            signal_tuple: Optional[Tuple[TradingSignal, str, Optional[float]]] = None
             candle_raw = msg["k"]
             current_close_price = float(candle_raw["c"])
             if candle_raw["x"] is True:
@@ -162,10 +162,20 @@ class LiveRunner:
                 print("*", end="", flush=True)
             else:
                 signal_tuple = self.strategy.on_tick(current_close_price, self.current_position)
+                if signal_tuple is not None:
+                    time.sleep(10)
+                    quantity_asset = float(
+                        self.binance_client.get_asset_balance(asset=self.asset)["free"]
+                    )
+                    if quantity_asset < self.strategy.min_value_asset:
+                        signal_tuple = None
 
             if signal_tuple is not None:
                 self.place_order(
-                    signal=signal_tuple[0], last_price=current_close_price, reason=signal_tuple[1]
+                    signal=signal_tuple[0],
+                    last_price=current_close_price,
+                    reason=signal_tuple[1],
+                    stop_loss_price=signal_tuple[2],
                 )
             else:
                 print(".", end="", flush=True)
@@ -182,13 +192,20 @@ class LiveRunner:
             / 10 ** self.decimals_base_asset_price
         )
 
-    def place_order(self, signal: TradingSignal, last_price: float, reason: str):
+    def place_order(
+        self,
+        signal: TradingSignal,
+        last_price: float,
+        reason: str,
+        stop_loss_price: Optional[float],
+    ):
         open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
         print(f"Closing {len(open_orders)} open trades for {self.tradingpair}")
         for open_order in open_orders:
             self.binance_client.cancel_order(symbol=self.tradingpair, orderId=open_order["orderId"])
 
         self.wait_for_orders(open_orders)
+        print("Open orders closed")
 
         print(f"Placing new order: signal: {signal}")
         print(f"Reason: {reason}")
@@ -206,15 +223,20 @@ class LiveRunner:
             # quantity_str = f"{quantity:.8f}"[:-2]
             quantity_str = self.round_quantity(quantity)
 
-            print(
-                f"ORDER: Limit buy! Buy {quantity_str} {self.asset} at a maximum price of {worst_acceptable_price_str} {self.base_asset}"
-            )
-            order = self.binance_client.order_limit_buy(
-                symbol=self.tradingpair,
-                quantity=quantity_str,
-                timeInForce="GTC",
-                price=worst_acceptable_price_str,
-            )
+            if quantity_str > self.strategy.min_value_asset:
+                print(
+                    f"ORDER: Limit buy! Buy {quantity_str} {self.asset} at a maximum price of {worst_acceptable_price_str} {self.base_asset}"
+                )
+                order = self.binance_client.order_limit_buy(
+                    symbol=self.tradingpair,
+                    quantity=quantity_str,
+                    timeInForce="GTC",
+                    price=worst_acceptable_price_str,
+                )
+            else:
+                print(
+                    f"WARNING: Order not executed!! ERROR: quantity ({quantity_str}) i below min_value_asset ({self.strategy.min_value_asset}). This should not be possible."
+                )
         elif signal == TradingSignal.SELL:
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
             # make sure we round down https://github.com/sammchardy/python-binance/issues/219
@@ -223,15 +245,21 @@ class LiveRunner:
             worst_acceptable_price = float(last_price) * 0.97  # max 3 % down
             # worst_acceptable_price_str = f"{worst_acceptable_price:.8f}"[:-2]
             worst_acceptable_price_str = self.round_price(worst_acceptable_price)
-            print(
-                f"ORDER: Limit sell! Sell {quantity_str} {self.asset} at a minimum price of {worst_acceptable_price_str} {self.base_asset}."
-            )
-            order = self.binance_client.order_limit_sell(
-                symbol=self.tradingpair,
-                quantity=quantity_str,
-                timeInForce="GTC",
-                price=worst_acceptable_price_str,
-            )
+
+            if quantity_str > self.strategy.min_value_asset:
+                print(
+                    f"ORDER: Limit sell! Sell {quantity_str} {self.asset} at a minimum price of {worst_acceptable_price_str} {self.base_asset}."
+                )
+                order = self.binance_client.order_limit_sell(
+                    symbol=self.tradingpair,
+                    quantity=quantity_str,
+                    timeInForce="GTC",
+                    price=worst_acceptable_price_str,
+                )
+            else:
+                print(
+                    f"WARNING: Order not executed!! ERROR: quantity ({quantity_str}) i below min_value_asset ({self.strategy.min_value_asset}). This should not be possible."
+                )
 
         assert order is not None, "Order can not be none here."
 
@@ -240,14 +268,40 @@ class LiveRunner:
         if order["status"] == "FILLED":
             print("Order successfully executed!:")
             print(order)
+            new_trade_dict = self.order_to_trade(order, signal, reason)
 
             data_util.add_trade(
                 instrument=self.tradingpair,
                 interval=self.candlestick_interval,
                 trading_strategy_instance_name=self.trading_strategy_instance_name,
-                new_trade_dict=self.order_to_trade(order, signal, reason),
+                new_trade_dict=new_trade_dict,
             )
             self.current_position = signal
+
+            if signal == TradingSignal.BUY and stop_loss_price is not None:
+                order_res = self.binance_client.create_order(
+                    symbol=self.tradingpair,
+                    side=self.binance_client.SIDE_SELL,
+                    type=self.binance_client.ORDER_TYPE_STOP_LOSS_LIMIT,
+                    timeInForce=self.binance_client.TIME_IN_FORCE_GTC,
+                    quantity=self.round_quantity(new_trade_dict["executedQty"]),
+                    price=self.round_price(stop_loss_price * 0.97),
+                    stopPrice=self.round_price(stop_loss_price),
+                )
+
+                print("Stoploss order responds:")
+                print(order_res)
+
+                # order = self.binance_client.get_order(
+                #     symbol=self.tradingpair, orderId=order_res["orderId"]
+                # )
+
+                # print("Stoploss order:")
+                # print(order)
+                # order = self.wait_for_orders(
+                #     [order],
+                #     accepted_statuses=["NEW", "PARTIALLY_FILLED", "FILLED", "PENDING_CANCEL"],
+                # )[0]
 
         else:
             print("Order failed! :")
@@ -261,22 +315,21 @@ class LiveRunner:
         accepted_statuses: List[str] = ["FILLED", "CANCELED", "REJECTED", "EXPIRED"],
     ):
         final_orders: List[Any] = []
-        sleep_times = 0
         for order in orders:
-            while order["status"] not in accepted_statuses:
-                order = self.binance_client.get_order(
-                    symbol=self.tradingpair, orderId=order["orderId"]
-                )
-                print("ORDER status: " + order["status"])
-                if sleep_times >= number_of_retry:
+            sleep_times = 0
+            while order["status"] not in accepted_statuses and sleep_times <= number_of_retry:
+                sleep_times = sleep_times + 1
+                if sleep_times > number_of_retry:
                     self.binance_client.cancel_order(
                         symbol=self.tradingpair, orderId=order["orderId"]
                     )
                     print(f"The order was cancled. Because it was not filled within {2*3} min")
-                    sleep_times = 0
                 else:
                     time.sleep(sleep_seconds)
-                    sleep_times = sleep_times + 1
+                    order = self.binance_client.get_order(
+                        symbol=self.tradingpair, orderId=order["orderId"]
+                    )
+                    print("ORDER status: " + order["status"])
             final_orders = final_orders + [order]
 
         return final_orders

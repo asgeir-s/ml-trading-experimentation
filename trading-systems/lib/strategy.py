@@ -34,7 +34,7 @@ class Strategy(abc.ABC):
 
     def on_candlestick(
         self, candlesticks: pd.DataFrame, trades: pd.DataFrame, status: Dict = {}
-    ) -> Optional[Tuple[TradingSignal, str]]:
+    ) -> Optional[Tuple[TradingSignal, str, Optional[float]]]:
         """All or a window of candlesticks up until the newest (.tail(1)) and all earlyer signals."""
         features = self.generate_features(candlesticks)
         return self.on_candlestick_with_features(candlesticks, features, trades, status)
@@ -45,7 +45,7 @@ class Strategy(abc.ABC):
         features: pd.DataFrame,
         trades: pd.DataFrame,
         status: Dict = {},
-    ) -> Optional[Tuple[TradingSignal, str]]:
+    ) -> Optional[Tuple[TradingSignal, str, Optional[float]]]:
         """
         It calls the __train method every nth execution.
 
@@ -84,7 +84,7 @@ class Strategy(abc.ABC):
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
         status: Dict = {},
-    ) -> Optional[Tuple[TradingSignal, str]]:
+    ) -> Optional[Tuple[TradingSignal, str, Optional[float]]]:
         """
         (mostly) Internal method for calling with the features and the predictions.
         Can be used from outside for testing targets.
@@ -92,11 +92,15 @@ class Strategy(abc.ABC):
 
     def on_tick(
         self, price: float, last_signal: TradingSignal
-    ) -> Optional[Tuple[TradingSignal, str]]:
+    ) -> Optional[Tuple[TradingSignal, str, Optional[float]]]:
         """
         Checks if the stoploss should be executed. Should be called on every tick in live mode.
         Be carful overriding this as it will not be possible to backtest when it is changed.
+
+        This is used as a sefety if the stoploss order added to the exchange when buying is not working or or is cancled or something
         """
+        # if not self.backtest:
+        #     return None
         if (
             self.stop_loss is not None
             and last_signal == TradingSignal.BUY
@@ -105,6 +109,7 @@ class Strategy(abc.ABC):
             return (
                 TradingSignal.SELL,
                 f"Stop loss: price ({price}) is below stop loss ({self.stop_loss})",
+                None
             )
         elif (
             self.take_profit is not None
@@ -114,6 +119,7 @@ class Strategy(abc.ABC):
             return (
                 TradingSignal.SELL,
                 f"Take profit: price ({price}) is above take profit ({self.take_profit})",
+                None
             )
         else:
             return None

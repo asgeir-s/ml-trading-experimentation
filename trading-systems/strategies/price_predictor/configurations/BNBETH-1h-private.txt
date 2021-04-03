@@ -1,0 +1,51 @@
+First run (initializing model):
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/private.json",
+    "baseAsset": "ETH",
+    "minValueBaseAsset": 1,
+    "asset": "BNB",
+    "minValueAsset": 0.01,
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.2,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    },
+    "closeModelPath": "./strategies/price_predictor/tmp/models/close_model_BNB-ETH1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/low_model_BNB-ETH1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/high_model_BNB-ETH1",
+    "loadModelFromPath": "True",
+    "saveModelToPath": "False"
+}
+Starts with 100$ at 2019-11-24T15:00:00.000000000
+Ends with 636523112.9276832$ (number of trades: 2730) at 2021-04-02T02:59:59.999000000
+Earned 636523012.9276832$ (636523012.93%)
+Percentage price change in period: 62.86%
+
+Secound run:
+{
+    "name": "price_predictor_runner_1",
+    "binanceApiSecretPath": "./secrets/private.json",
+    "baseAsset": "ETH",
+    "minValueBaseAsset": 1,
+    "asset": "BNB",
+    "minValueAsset": 0.01,
+    "candleInterval": "1h",
+    "highestHighBuyThreshold": 1,
+    "closePredictionSellThreshold": -0.2,
+    "backtest": {
+        "startPosition": 20000,
+        "missingTargetsAtTheEnd": 4
+    },
+    "closeModelPath": "./strategies/price_predictor/tmp/models/close_model_BNB-ETH1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/low_model_BNB-ETH1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/high_model_BNB-ETH1",
+    "loadModelFromPath": "True",
+    "saveModelToPath": "False"
+}
+Starts with 100$ at 2019-11-24T15:00:00.000000000
+Ends with 362516020.541957$ (number of trades: 3248) at 2021-04-02T02:59:59.999000000
+Earned 362515920.541957$ (362515920.54%)
+Percentage price change in period: 62.86%
