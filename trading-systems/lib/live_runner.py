@@ -174,7 +174,9 @@ class LiveRunner:
                             trading_strategy_instance_name=self.trading_strategy_instance_name,
                             new_trade_dict=new_trade_dict,
                         )
-                        print("The active stoploss order has been filled. Its now added to the trades list.")
+                        print(
+                            "The active stoploss order has been filled. Its now added to the trades list."
+                        )
                         self.active_stoploss_order_id = None
                     else:
                         print("There is a open stoploss order, but it has not been filled yet.")
@@ -185,11 +187,16 @@ class LiveRunner:
                 signal_tuple = self.strategy.on_tick(current_close_price, self.current_position)
                 if signal_tuple is not None:
                     time.sleep(10)
-                    quantity_asset = float(
-                        self.binance_client.get_asset_balance(asset=self.asset)["free"]
-                    )
-                    if quantity_asset < self.strategy.min_value_asset:
-                        signal_tuple = None
+                    try:
+                        quantity_asset = float(
+                            self.binance_client.get_asset_balance(asset=self.asset)["free"]
+                        )
+                        if quantity_asset < self.strategy.min_value_asset:
+                            signal_tuple = None
+                    except:
+                        print(
+                            "WARNING: an exception ocurred while checking if we need to execute the stoploss manually. Its no big deal (it will try to execute the stoploss)."
+                        )
 
             if signal_tuple is not None:
                 self.place_order(
