@@ -1,6 +1,8 @@
 import pandas as pd
 from pathlib import Path
 from typing import Union, Dict, Any, Optional
+from datetime import datetime
+
 
 candlesticks: Dict[str, Dict[str, pd.DataFrame]] = {}
 trades: Dict[str, Any] = {}
@@ -107,7 +109,10 @@ def load_candlesticks(
 
 
 def add_candle(instrument: str, interval: str, new_candle: Dict):
-    print(f"\nNew candle for {instrument} @ {interval}:")
+    timestemp = int(new_candle["close time"]) / 1000
+    time_formated = datetime.utcfromtimestamp(timestemp).strftime("%c")
+
+    print(f"\n[{time_formated}] New candle for {instrument} @ {interval}:")
     print(new_candle)
     candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
         new_candle, ignore_index=True
