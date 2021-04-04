@@ -10,7 +10,7 @@ from lib.strategy import Strategy
 from lib.tradingSignal import TradingSignal
 from lib import data_util
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 
 
@@ -24,7 +24,7 @@ class LiveRunner:
     binance_client: Client
     decimals_asset_quantity: int = 6
     decimals_base_asset_price: int = 6
-    active_stoploss_order_id: Optional[str] = None
+    active_stoploss_order_ids: List[str] = field(default_factory=list)
 
     __current_position: Optional[TradingSignal] = None
     binance_socket_manager: Any = None
@@ -77,8 +77,21 @@ class LiveRunner:
         print(f"Number of decimals for quantity (in {self.asset}):", self.decimals_asset_quantity)
 
         print(f"Current position is (last signal): {self.current_position}")
-        self.binance_socket_manager = BinanceSocketManager(self.binance_client)
+        self.binance_socket_manager = BinanceSocketManager(self.binance_client, user_timeout=5 * 60)
         # start any sockets here, i.e a trade socket
+
+        open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
+
+        print("Current open orders:")
+        for order in open_orders:
+            print(order)
+
+        self.active_stoploss_order_ids = [
+            order["orderId"] for order in open_orders if "STOP_LOSS" in order["type"]
+        ]
+        print(
+            f"There are {len(self.active_stoploss_order_ids)} open stop-loss orders for {self.tradingpair}:"
+        )
 
         connection_key = self.binance_socket_manager.start_kline_socket(
             self.tradingpair, self.process_message, interval=self.candlestick_interval,
@@ -159,13 +172,15 @@ class LiveRunner:
 
                 status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
 
-                if self.active_stoploss_order_id is not None:
+                for order_id in self.active_stoploss_order_ids:
                     stoploss_order = self.binance_client.get_order(
-                        symbol=self.tradingpair, orderId=self.active_stoploss_order_id
+                        symbol=self.tradingpair, orderId=order_id
                     )
                     if stoploss_order["status"] == "FILLED":
+                        print("Stop-loss order executed at exchange")
+                        print(stoploss_order)
                         new_trade_dict = self.order_to_trade(
-                            stoploss_order, TradingSignal.SELL, "Stoploss executed"
+                            stoploss_order, TradingSignal.SELL, "Stop-loss executed"
                         )
 
                         data_util.add_trade(
@@ -175,11 +190,12 @@ class LiveRunner:
                             new_trade_dict=new_trade_dict,
                         )
                         print(
-                            "The active stoploss order has been filled. Its now added to the trades list."
+                            "An active stoploss order has been filled. Its now added to the trades list."
                         )
-                        self.active_stoploss_order_id = None
+                        self.active_stoploss_order_ids.remove(order_id)
                     else:
-                        print("There is a open stoploss order, but it has not been filled yet.")
+                        print("Open stoploss order:")
+                        print(stoploss_order)
 
                 signal_tuple = self.strategy.on_candlestick(self.candlesticks, trades, status)
                 print("*", end="", flush=True)
@@ -227,15 +243,6 @@ class LiveRunner:
         reason: str,
         stop_loss_price: Optional[float],
     ):
-        open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
-        print(f"Closing {len(open_orders)} open trades for {self.tradingpair}")
-        for open_order in open_orders:
-            self.binance_client.cancel_order(symbol=self.tradingpair, orderId=open_order["orderId"])
-
-        self.wait_for_orders(open_orders)
-        print("Open orders closed")
-        self.active_stoploss_order_id = None
-
         print(f"Placing new order: signal: {signal}")
         print(f"Reason: {reason}")
         order: Dict[str, Any]
@@ -267,6 +274,16 @@ class LiveRunner:
                     f"WARNING: Order not executed!! ERROR: quantity ({quantity_str}) i below min_value_asset ({self.strategy.min_value_asset}). This should not be possible."
                 )
         elif signal == TradingSignal.SELL:
+            open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
+            print(f"Closing {len(open_orders)} open trades for {self.tradingpair}")
+            for open_order in open_orders:
+                self.binance_client.cancel_order(
+                    symbol=self.tradingpair, orderId=open_order["orderId"]
+                )
+
+            self.wait_for_orders(open_orders)
+            print(f"All open orders for {self.tradingpair} closed")
+            self.active_stoploss_order_ids.clear()
             quantity = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
             # make sure we round down https://github.com/sammchardy/python-binance/issues/219
             # quantity_str = f"{quantity:.8f}"[:-2]
@@ -318,9 +335,9 @@ class LiveRunner:
                     stopPrice=self.round_price(stop_loss_price),
                 )
 
-                print("Stoploss order responds:")
+                print("Stoploss order created at exchange:")
                 print(order_res)
-                self.active_stoploss_order_id = order_res["orderId"]
+                self.active_stoploss_order_ids.append(order_res["orderId"])
 
                 # order = self.binance_client.get_order(
                 #     symbol=self.tradingpair, orderId=order_res["orderId"]
@@ -366,15 +383,18 @@ class LiveRunner:
 
     @staticmethod
     def order_to_trade(order: Any, signal: TradingSignal, reason: str = ""):
-        acc_price, acc_quantity = reduce(
-            lambda acc, item: (
-                acc[0] + float(item["price"]) * float(item["qty"]),
-                acc[1] + float(item["qty"]),
-            ),
-            order["fills"],
-            (0.0, 0.0),
-        )
-        avg_price = acc_price / acc_quantity
+        if order.get("fills", None) is None:
+            avg_price = order["price"]
+        else:
+            acc_price, acc_quantity = reduce(
+                lambda acc, item: (
+                    acc[0] + float(item["price"]) * float(item["qty"]),
+                    acc[1] + float(item["qty"]),
+                ),
+                order["fills"],
+                (0.0, 0.0),
+            )
+            avg_price = acc_price / acc_quantity
 
         return {
             "orderId": int(order["orderId"]),
