@@ -87,7 +87,7 @@ class Backtest:
                 # print(trad)
                 if signals_csv_path is not None:
                     trades.tail(1).to_csv(signals_csv_path, header=False, mode="a")
-            # check if take profit or stop loss should be executed before getting next periode
+            # check if take profit or stop-loss should be executed before getting next periode
             if (
                 last_signal == TradingSignal.BUY
                 and strategy.need_ticks(last_signal)

@@ -108,7 +108,7 @@ class Strategy(abc.ABC):
         ):
             return (
                 TradingSignal.SELL,
-                f"Stop loss: price ({price}) is below stop loss ({self.stop_loss})",
+                f"Stop-loss: price ({price}) is below stop-loss ({self.stop_loss})",
                 None
             )
         elif (

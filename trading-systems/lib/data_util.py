@@ -110,7 +110,7 @@ def load_candlesticks(
 
 def add_candle(instrument: str, interval: str, new_candle: Dict):
     timestemp = int(new_candle["close time"]) / 1000
-    time_formated = datetime.utcfromtimestamp(timestemp).strftime("%c")
+    time_formated = datetime.fromtimestamp(timestemp, tz=None).strftime("%c")
 
     print(f"\n[{time_formated}] New candle for {instrument} @ {interval}:")
     print(new_candle)
