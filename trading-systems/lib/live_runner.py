@@ -214,7 +214,7 @@ class LiveRunner:
             # worst_acceptable_price_str = f"{worst_acceptable_price:.8f}"[:-2]
             worst_acceptable_price_str = self.round_price(worst_acceptable_price)
             quantity = float(quantity_base_asset) / worst_acceptable_price
-            # make sure we round down by removing the last two digits 
+            # make sure we round down by removing the last two digits
             # https://github.com/sammchardy/python-binance/issues/219
             # quantity_str = f"{quantity:.8f}"[:-2]
             quantity_str = self.round_quantity(quantity)
@@ -252,7 +252,7 @@ class LiveRunner:
             if quantity_str > self.strategy.min_value_asset:
                 print(
                     f"ORDER: Limit sell! Sell {quantity_str} {self.asset} at a minimum price of ",
-                    f" {worst_acceptable_price_str} {self.base_asset}."
+                    f" {worst_acceptable_price_str} {self.base_asset}.",
                 )
                 order = self.binance_client.order_limit_sell(
                     symbol=self.tradingpair, quantity=quantity_str, timeInForce="GTC", price=worst_acceptable_price_str,
@@ -336,7 +336,7 @@ class LiveRunner:
     @staticmethod
     def order_to_trade(order: Any, signal: TradingSignal, reason: str = ""):
         if order.get("fills", None) is None:
-            avg_price = order.get("stopPrice", order.get("price", 0))
+            avg_price = order.get("stopPrice", order.get("price", -1))
         else:
             acc_price, acc_quantity = reduce(
                 lambda acc, item: (acc[0] + float(item["price"]) * float(item["qty"]), acc[1] + float(item["qty"]),),
@@ -344,22 +344,22 @@ class LiveRunner:
                 (0.0, 0.0),
             )
             avg_price = acc_price / acc_quantity
-        
-        time = order.get("transactTime", order.get("updateTime", 0))
+
+        time = order.get("transactTime", order.get("updateTime", -1))
 
         return {
-            "orderId": int(order["orderId"]),
+            "orderId": int(order.get("orderId", -1)),
             "transactTime": pd.to_datetime(
                 time, unit="ms"
             ),  # datetime.datetime.fromtimestamp(float(order["transactTime"]) / 1000.0),
             "price": avg_price,
             "signal": str(signal),
-            "origQty": float(order["origQty"]),
-            "executedQty": float(order["executedQty"]),
-            "cummulativeQuoteQty": float(order["cummulativeQuoteQty"]),
-            "timeInForce": str(order["timeInForce"]),
-            "type": str(order["type"]),
-            "side": str(order["side"]),
+            "origQty": float(order.get("origQty", -1)),
+            "executedQty": float(order.get("executedQty", -1)),
+            "cummulativeQuoteQty": float(order.get("cummulativeQuoteQty", -1)),
+            "timeInForce": str(order.get("timeInForce", -1)),
+            "type": str(order.get("type", -1)),
+            "side": str(order.get("side", -1)),
             "reason": str(reason),
         }
 
