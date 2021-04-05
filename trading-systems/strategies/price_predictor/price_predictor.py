@@ -79,8 +79,6 @@ class PricePredictor(Strategy):
             print("Close preditcion:", close_prediction)
             print("Lowest min prediction:", lowest_min_prediction)
             print("Highest high:", highest_high_prediction)
-            print(f"Base asset balance:", base_asset_balance)
-            print(f"Asset balance:", asset_balance)
 
         if np.nan in (close_prediction, lowest_min_prediction, highest_high_prediction):
             print("THE PREDITED VALUE IS NAN!!")

@@ -112,7 +112,7 @@ class LiveRunner:
         asset_balance_res = self.binance_client.get_asset_balance(asset=self.asset)
         asset_balance = float(asset_balance_res["free"]) + float(asset_balance_res["locked"])
         base_asset_balance = self.binance_client.get_asset_balance(asset=self.base_asset)
-        print(f"Current position (from exchange): Asset: {asset_balance}, Base asset: {base_asset_balance}")
+        print(f"Current position (from exchange): Asset: {asset_balance_res}, Base asset: {base_asset_balance}")
         if float(asset_balance) > self.strategy.min_value_asset:
             print("Current position (from exchange)(last signal executed): BUY")
             return TradingSignal.BUY
@@ -149,6 +149,8 @@ class LiveRunner:
                 asset_balance = float(asset_balance_res["free"]) + float(asset_balance_res["locked"])
                 base_asset_balance = float(self.binance_client.get_asset_balance(asset=self.base_asset)["free"])
 
+                print(f"Base asset ({self.base_asset}) balance: {base_asset_balance}")
+                print(f"Asset ({self.asset}) balance: {asset_balance}")
                 status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
 
                 for order_id in self.active_stoploss_order_ids:
