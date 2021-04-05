@@ -37,7 +37,7 @@ class LiveRunner:
         if self.__current_position is not None:
             return self.__current_position
         else:
-            new_current_position = self.get_current_position(self.binance_client, self.asset, self.base_asset)
+            new_current_position = self.get_current_position()
             trades = data_util.load_trades(
                 instrument=self.tradingpair,
                 interval=self.candlestick_interval,
@@ -108,12 +108,12 @@ class LiveRunner:
         decimals = len(step_size_str.split(".")[1])
         return decimals
 
-    @staticmethod
-    def get_current_position(binance_client: Client, asset: str, base_asset: str) -> TradingSignal:
-        asset_balance = binance_client.get_asset_balance(asset=asset)
-        base_asset_balance = binance_client.get_asset_balance(asset=base_asset)
+    def get_current_position(self) -> TradingSignal:
+        asset_balance_res = self.binance_client.get_asset_balance(asset=self.asset)
+        asset_balance = float(asset_balance_res["free"]) + float(asset_balance_res["locked"])
+        base_asset_balance = self.binance_client.get_asset_balance(asset=self.base_asset)
         print(f"Current position (from exchange): Asset: {asset_balance}, Base asset: {base_asset_balance}")
-        if float(asset_balance["free"]) > 0.000001:
+        if float(asset_balance) > self.strategy.min_value_asset:
             print("Current position (from exchange)(last signal executed): BUY")
             return TradingSignal.BUY
         else:
@@ -145,7 +145,8 @@ class LiveRunner:
                         "WARNING: there are no trades for this trading system yet. The current position on the exchange"
                         " needs to match whats specified in the strategy if there are no trades."
                     )
-                asset_balance = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
+                asset_balance_res = self.binance_client.get_asset_balance(asset=self.asset)
+                asset_balance = float(asset_balance_res["free"]) + float(asset_balance_res["locked"])
                 base_asset_balance = float(self.binance_client.get_asset_balance(asset=self.base_asset)["free"])
 
                 status = {"asset_balance": asset_balance, "base_asset_balance": base_asset_balance}
@@ -179,6 +180,8 @@ class LiveRunner:
                         quantity_asset = float(self.binance_client.get_asset_balance(asset=self.asset)["free"])
                         if quantity_asset < self.strategy.min_value_asset:
                             signal_tuple = None
+                        else:
+                            print("WARNING!! Still has free balance event though it should have been sold in a stop-loss. Will sell it now!")
                     except:
                         print(
                             "WARNING: an exception ocurred while checking if we need to execute the stoploss manually."
@@ -234,7 +237,7 @@ class LiveRunner:
                 )
         elif signal == TradingSignal.SELL:
             open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
-            print(f"Closing {len(open_orders)} open trades for {self.tradingpair}")
+            print(f"Closing {len(open_orders)} open orders for {self.tradingpair}")
             for open_order in open_orders:
                 self.binance_client.cancel_order(symbol=self.tradingpair, orderId=open_order["orderId"])
 
