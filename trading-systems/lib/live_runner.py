@@ -336,7 +336,7 @@ class LiveRunner:
     @staticmethod
     def order_to_trade(order: Any, signal: TradingSignal, reason: str = ""):
         if order.get("fills", None) is None:
-            avg_price = order["price"]
+            avg_price = order.get("stopPrice", order.get("price", 0))
         else:
             acc_price, acc_quantity = reduce(
                 lambda acc, item: (acc[0] + float(item["price"]) * float(item["qty"]), acc[1] + float(item["qty"]),),
@@ -344,11 +344,13 @@ class LiveRunner:
                 (0.0, 0.0),
             )
             avg_price = acc_price / acc_quantity
+        
+        time = order.get("transactTime", order.get("updateTime", 0))
 
         return {
             "orderId": int(order["orderId"]),
             "transactTime": pd.to_datetime(
-                order["transactTime"], unit="ms"
+                time, unit="ms"
             ),  # datetime.datetime.fromtimestamp(float(order["transactTime"]) / 1000.0),
             "price": avg_price,
             "signal": str(signal),
