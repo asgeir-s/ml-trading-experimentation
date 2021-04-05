@@ -95,15 +95,16 @@ class PricePredictor(Strategy):
             )
             and close_prediction > 0
         ):
-            self.stop_loss = current_price * ((100 + lowest_min_prediction * 1.05)) / 100
+            stop_loss_price = current_price * ((100 + lowest_min_prediction * 1.05)) / 100
             # self.take_profit = current_price * ((100 + highest_high_prediction * 0.95)) / 100
             print(f"Buy signal at: {current_price}")
-            print("Stoploss: ", self.stop_loss)
+            print("Stoploss: ", stop_loss_price)
             print("Take_profit: ", self.take_profit)
             signal = (
                 TradingSignal.BUY,
-                "Its predicted that the highest high will be more then two times the lowest low and the close price is expected to be highter",
-                self.stop_loss
+                "Its predicted that the highest high will be more then two times the lowest low and the close price is"
+                " expected to be highter",
+                stop_loss_price
             )
         elif (
             asset_balance > self.min_value_asset
@@ -116,5 +117,4 @@ class PricePredictor(Strategy):
                 f"The close price is predicted to go down more then {self.close_prediction_sell_threshold}%",
                 None
             )
-            self.stop_loss = None
         return signal
