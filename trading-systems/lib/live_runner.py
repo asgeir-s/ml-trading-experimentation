@@ -328,8 +328,8 @@ class LiveRunner:
     def wait_for_orders(
         self,
         orders: List[Any],
-        number_of_retry: int = 3,
-        sleep_seconds: int = 120,
+        number_of_retry: int = 4,
+        sleep_seconds: int = 20,
         accepted_statuses: List[str] = ["FILLED", "CANCELED", "REJECTED", "EXPIRED"],
     ):
         final_orders: List[Any] = []
