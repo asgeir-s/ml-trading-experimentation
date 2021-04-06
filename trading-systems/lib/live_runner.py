@@ -183,7 +183,9 @@ class LiveRunner:
                         if quantity_asset < self.strategy.min_value_asset:
                             signal_tuple = None
                         else:
-                            print("WARNING!! Still has free balance event though it should have been sold in a stop-loss. Will sell it now!")
+                            print(
+                                "WARNING!! Still has free balance event though it should have been sold in a stop-loss. Will sell it now!"
+                            )
                     except:
                         print(
                             "WARNING: an exception ocurred while checking if we need to execute the stoploss manually."
@@ -276,6 +278,8 @@ class LiveRunner:
             print("Order successfully executed!:")
             print(order)
             new_trade_dict = self.order_to_trade(order, signal, reason)
+            print("Trade result:")
+            print(new_trade_dict)
 
             data_util.add_trade(
                 instrument=self.tradingpair,
@@ -285,13 +289,19 @@ class LiveRunner:
             )
             self.current_position = signal
 
+            quantity = (
+                self.round_quantity(float(new_trade_dict["executedQty"]) - float(new_trade_dict["commission"]))
+                if new_trade_dict["commissionAsset"] == self.asset
+                else self.round_quantity(new_trade_dict["executedQty"])
+            )
+
             if signal == TradingSignal.BUY and stop_loss_price is not None:
                 order_res = self.binance_client.create_order(
                     symbol=self.tradingpair,
                     side=self.binance_client.SIDE_SELL,
                     type=self.binance_client.ORDER_TYPE_STOP_LOSS_LIMIT,
                     timeInForce=self.binance_client.TIME_IN_FORCE_GTC,
-                    quantity=self.round_quantity(new_trade_dict["executedQty"]),
+                    quantity=quantity,
                     price=self.round_price(stop_loss_price * 0.97),
                     stopPrice=self.round_price(stop_loss_price),
                 )
@@ -342,12 +352,19 @@ class LiveRunner:
     def order_to_trade(order: Any, signal: TradingSignal, reason: str = ""):
         if order.get("fills", None) is None:
             avg_price = order.get("stopPrice", order.get("price", -1))
+            acc_commission = -1.0
+            commission_asset = "BNB(?)"
         else:
-            acc_price, acc_quantity = reduce(
-                lambda acc, item: (acc[0] + float(item["price"]) * float(item["qty"]), acc[1] + float(item["qty"]),),
+            acc_price, acc_quantity, acc_commission = reduce(
+                lambda acc, item: (
+                    acc[0] + float(item["price"]) * float(item["qty"]),
+                    acc[1] + float(item["qty"]),
+                    acc[2] + float(item["commission"]),
+                ),
                 order["fills"],
-                (0.0, 0.0),
+                (0.0, 0.0, 0.0),
             )
+            commission_asset = order["fills"][0]["commissionAsset"]
             avg_price = acc_price / acc_quantity
 
         time = order.get("transactTime", order.get("updateTime", -1))
@@ -363,6 +380,8 @@ class LiveRunner:
             "executedQty": float(order.get("executedQty", -1)),
             "cummulativeQuoteQty": float(order.get("cummulativeQuoteQty", -1)),
             "timeInForce": str(order.get("timeInForce", -1)),
+            "commissionAsset": commission_asset,
+            "commission": acc_commission,
             "type": str(order.get("type", -1)),
             "side": str(order.get("side", -1)),
             "reason": str(reason),

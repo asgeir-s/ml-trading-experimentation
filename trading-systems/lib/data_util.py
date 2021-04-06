@@ -21,10 +21,7 @@ def create_directory_if_not_exists(dir_path: str) -> None:
 
 
 def load_candlesticks(
-    instrument: str,
-    interval: str,
-    binance_client: Optional[Any] = None,
-    custom_data_path: Optional[str] = None,
+    instrument: str, interval: str, binance_client: Optional[Any] = None, custom_data_path: Optional[str] = None,
 ):
     """
     Returns all candlesticks up until NOW and persists it to the csv.
@@ -43,16 +40,12 @@ def load_candlesticks(
         )
         new_csv = candlesticks[instrument].get(interval) is None
         last_candle_close: Union[str, int] = (
-            int(candlesticks[instrument][interval].tail(1)["close time"].values[0])
-            if not new_csv
-            else "1 Jan, 2017"
+            int(candlesticks[instrument][interval].tail(1)["close time"].values[0]) if not new_csv else "1 Jan, 2017"
         )
         print(f"Closetime of newest candle is {last_candle_close}")
         if binance_client is not None:
             print("Geting new candlesticks from Binance.")
-            new_raw_candles_raw = binance_client.get_historical_klines(
-                instrument, interval, last_candle_close
-            )
+            new_raw_candles_raw = binance_client.get_historical_klines(instrument, interval, last_candle_close)
 
             new_candles = pd.DataFrame.from_records(
                 new_raw_candles_raw,
@@ -114,15 +107,10 @@ def add_candle(instrument: str, interval: str, new_candle: Dict):
 
     print(f"\n[{time_formated}] New candle for {instrument} @ {interval}:")
     print(new_candle)
-    candlesticks[instrument][interval] = candlesticks[instrument][interval].append(
-        new_candle, ignore_index=True
-    )
+    candlesticks[instrument][interval] = candlesticks[instrument][interval].append(new_candle, ignore_index=True)
     new_candle_row = candlesticks[instrument][interval].tail(1)
     new_candle_row.to_csv(
-        f"{tmp_path}/data/binance/candlestick-{instrument}-{interval}.csv",
-        mode="a",
-        header=False,
-        index=False,
+        f"{tmp_path}/data/binance/candlestick-{instrument}-{interval}.csv", mode="a", header=False, index=False,
     )
     return candlesticks[instrument][interval]
 
@@ -145,6 +133,8 @@ def load_trades(instrument: str, interval: str, trading_strategy_instance_name: 
                     "executedQty": float,
                     "cummulativeQuoteQty": float,
                     "timeInForce": str,
+                    "commissionAsset": str,
+                    "commission": float,
                     "type": str,
                     "side": str,
                     "reason": str,
@@ -154,9 +144,7 @@ def load_trades(instrument: str, interval: str, trading_strategy_instance_name: 
     return trades[name]
 
 
-def add_trade(
-    instrument: str, interval: str, trading_strategy_instance_name: str, new_trade_dict: Dict
-):
+def add_trade(instrument: str, interval: str, trading_strategy_instance_name: str, new_trade_dict: Dict):
     name = f"{trading_strategy_instance_name}-{instrument}-{interval}"
     new_csv = trades[name] is None
     if new_csv:
@@ -171,6 +159,8 @@ def add_trade(
                 "executedQty",
                 "cummulativeQuoteQty",
                 "timeInForce",
+                "commissionAsset",
+                "commission",
                 "type",
                 "side",
                 "reason",
