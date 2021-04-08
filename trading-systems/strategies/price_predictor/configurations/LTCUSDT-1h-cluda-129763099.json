@@ -2,7 +2,7 @@
     "name": "price_predictor_runner_1",
     "binanceApiSecretPath": "./secrets/cluda.json",
     "baseAsset": "USDT",
-    "minValueBaseAsset": 20,
+    "minValueBaseAsset": 30,
     "asset": "LTC",
     "minValueAsset": 0.1,
     "candleInterval": "1h",
