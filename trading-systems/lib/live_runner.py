@@ -237,7 +237,7 @@ class LiveRunner:
             else:
                 print(
                     f"WARNING: Order not executed!! ERROR: quantity ({quantity_str}) i below min_value_asset"
-                    f" ({self.strategy.min_value_asset}). This should not be possible."
+                    f" ({self.strategy.min_value_asset}). Perhaps the min_value_base_asset should be adjusted in the configs file for the startegy."
                 )
         elif signal == TradingSignal.SELL:
             open_orders = self.binance_client.get_open_orders(symbol=self.tradingpair)
@@ -270,7 +270,7 @@ class LiveRunner:
                     f" ({self.strategy.min_value_asset}). This should not be possible."
                 )
 
-        assert order is not None, "Order can not be none here."
+        assert order is not None, "Order should not be none here."
 
         order = self.wait_for_orders([order])[0]
 
