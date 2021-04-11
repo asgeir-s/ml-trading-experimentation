@@ -2,19 +2,19 @@
     "name": "price_predictor_runner_1",
     "binanceApiSecretPath": "./secrets/private.json",
     "baseAsset": "USDT",
-    "minValueBaseAsset": 20,
+    "minValueBaseAsset": 30,
     "asset": "BTC",
     "minValueAsset": 0.0001,
     "candleInterval": "1h",
-    "highestHighBuyThreshold": 1,
-    "closePredictionSellThreshold": -0.2,
+    "highestHighBuyThreshold": 1.8,
+    "closePredictionSellThreshold": -0.01,
     "backtest": {
-        "startPosition": 20000,
+        "startPosition": 25000,
         "missingTargetsAtTheEnd": 4
     },
-    "closeModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/close_1",
-    "lowModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/low_1",
-    "highModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/high_1",
-    "loadModelFromPath": "True",
+    "closeModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/v2/close_1",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/v2/low_1",
+    "highModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/v2/high_1",
+    "loadModelFromPath": "False",
     "saveModelToPath": "True"
 }

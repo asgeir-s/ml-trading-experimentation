@@ -71,14 +71,14 @@ class TestStrategy(Strategy):
         print("predictions:")
         prediction = int(predictions[0])
         print(prediction)
-        last_time, last_signal, last_price = self.get_last_trade(trades)
+        last_time, last_signal, last_price = self.get_last_executed_trade(trades)
         if last_signal is None:
-            last_signal = TradingSignal.SELL
+            last_signal = TradingSignal.CLOSE
         signal: Optional[TradingSignal] = None
-        if prediction == 1 and last_signal == TradingSignal.SELL:
-            signal = TradingSignal.BUY
-        elif prediction == -1 and last_signal == TradingSignal.BUY:
-            signal = TradingSignal.SELL
+        if prediction == 1 and last_signal == TradingSignal.CLOSE:
+            signal = TradingSignal.LONG
+        elif prediction == -1 and last_signal == TradingSignal.LONG:
+            signal = TradingSignal.CLOSE
         return signal
 
     def generate_features(self, candlesticks: pd.DataFrame) -> pd.DataFrame:

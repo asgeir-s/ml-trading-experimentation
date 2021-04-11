@@ -25,32 +25,32 @@ class UpDownDoubleSpiral(Strategy):
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
     ) -> Optional[Tuple[TradingSignal, str]]:
-        last_time, last_signal, last_price = self.get_last_trade(trades)
+        last_time, last_signal, last_price = self.get_last_executed_trade(trades)
         if last_signal is None:
-            last_signal = TradingSignal.SELL
+            last_signal = TradingSignal.CLOSE
 
         up_down_model_sell_prediction = predictions[self.models[0]]
         up_down_model_buy_prediction = predictions[self.models[1]]
 
         signal: Optional[Tuple[TradingSignal, str]] = None
         if (
-            last_signal == TradingSignal.SELL
+            last_signal == TradingSignal.CLOSE
             and up_down_model_buy_prediction == 1
             and up_down_model_sell_prediction == 1
         ):
             current_price = features.tail(1)["close"].values[0]
             self.stop_loss = current_price * self.stop_loss_treshold
             signal = (
-                TradingSignal.BUY,
+                TradingSignal.LONG,
                 "The both the buy and sell modell indicates that the market will go up",
             )
         elif (
-            last_signal == TradingSignal.BUY
+            last_signal == TradingSignal.LONG
             and up_down_model_sell_prediction == 0
             and up_down_model_buy_prediction == 0
         ):
             signal = (
-                TradingSignal.SELL,
+                TradingSignal.CLOSE,
                 "The both the buy and sell modell indicates that the market will go down",
             )
         return signal

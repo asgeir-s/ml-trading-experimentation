@@ -1,4 +1,5 @@
-from strategies import PricePredictor as Strategy
+# from strategies import PricePredictor as Strategy
+from strategies import PricePredictor2 as Strategy
 from lib import data_util
 from lib.backtest import Backtest, setup_file_path
 from lib.charting import chartTrades
@@ -63,18 +64,19 @@ def main(binance_client, config):
     print("Finished generating features")
 
     # TODO: fix this to run with the new refactoring
-    signals = Backtest.run(
+    trades = Backtest.run(
         strategy=strategy,
         features=features,
         candlesticks=candlesticks,
         start_position=TRADE_START_POSITION,
         end_position=trade_end_position,
-        signals_csv_path=path_builder("signals"),
+        # signals_csv_path=path_builder("signals"),
+        trades_csv_path=path_builder("trades"),
     )
-    trades = Backtest.evaluate(
-        signals, candlesticks, TRADE_START_POSITION, trade_end_position, 0.001
-    )
-    trades.to_csv(path_builder("trades"))
+    # trades = Backtest.evaluate(
+    #     signals, candlesticks, TRADE_START_POSITION, trade_end_position, 0.001
+    # )
+    # trades.to_csv(path_builder("trades"))
 
     chartTrades(
         trades,

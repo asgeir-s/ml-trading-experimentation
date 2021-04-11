@@ -1,5 +1,5 @@
 {
-  "python.pythonPath": "conda-env/bin/python",
+  "python.pythonPath": "../conda_env_py38/bin/python",
   "python.analysis.extraPaths": ["${workspaceFolder}"],
   "cSpell.words": [
     "BTCUSDT",
@@ -24,5 +24,7 @@
     "sklearn",
     "strftime"
   ],
-  "jupyter.jupyterServerType": "local"
+  "jupyter.jupyterServerType": "local",
+  "python.formatting.provider": "black",
+  "git.ignoreLimitWarning": true
 }

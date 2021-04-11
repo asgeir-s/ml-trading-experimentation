@@ -18,15 +18,15 @@ class Second(Strategy):
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
     ) -> Optional[Tuple[TradingSignal, str]]:
-        last_time, last_signal, last_price = self.get_last_trade(trades)
+        last_time, last_signal, last_price = self.get_last_executed_trade(trades)
         if last_signal is None:
-            last_signal = TradingSignal.SELL
+            last_signal = TradingSignal.CLOSE
 
         signal: Optional[Tuple[TradingSignal, str]] = None
-        if last_signal == TradingSignal.SELL and predictions[self.models[0]] == 1:
+        if last_signal == TradingSignal.CLOSE and predictions[self.models[0]] == 1:
             current_price = features.tail(1)["close"].values[0]
             self.stop_loss = current_price * 0.95
-            signal = (TradingSignal.BUY, "Classifier Up Down indicates up")
-        elif last_signal == TradingSignal.BUY and predictions[self.models[0]] == 0:
-            signal = (TradingSignal.SELL, "Classifier Up Down indicates down")
+            signal = (TradingSignal.LONG, "Classifier Up Down indicates up")
+        elif last_signal == TradingSignal.LONG and predictions[self.models[0]] == 0:
+            signal = (TradingSignal.CLOSE, "Classifier Up Down indicates down")
         return signal

@@ -31,7 +31,9 @@ class Model(abc.ABC):
         """
 
     @abc.abstractmethod
-    def evaluate(self, testSetFeatures: pd.DataFrame, testSetTarget: pd.Series) -> None:
+    def evaluate(
+        self, testSetFeatures: pd.DataFrame, testSetTarget: pd.Series
+    ) -> None:
         """Evaluate"""
 
     @abc.abstractmethod
@@ -56,7 +58,9 @@ class Model(abc.ABC):
 
     # @staticmethod
     @abc.abstractmethod
-    def generate_target(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> pd.Series:
         """Given a dataframe with the correct features, it return a series
         with the same indexes containing the target."""
 

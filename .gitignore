@@ -3,3 +3,4 @@ trading-systems/secrets.json
 **/.mypy_cache/**
 **/.DS_Store
 trading-systems/secrets/**
+conda_env_py38

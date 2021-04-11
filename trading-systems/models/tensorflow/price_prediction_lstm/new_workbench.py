@@ -10,10 +10,10 @@ sys.path.insert(0, os.path.abspath("../../.."))
 
 
 # %%
-from models.tensorflow.price_prediction_lstm import PricePreditionLSTMModel
+from models.tensorflow.price_prediction_lstm import PricePreditionLSTMModelOld as PricePreditionLSTMModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
-from lib.data_util import load_candlesticks
+from lib.data_util import load_candlesticks  
 
 # %%
 candlesticks = load_candlesticks("BTCUSDT", "1h", custom_data_path="../../../tmp")
@@ -22,8 +22,8 @@ candlesticks
 
 
 # %%
-forward_look_for_target = 6
-model = PricePreditionLSTMModel(target_name="high", forward_look_for_target=forward_look_for_target)
+forward_look_for_target = 1
+model = PricePreditionLSTMModel(target_name="close", forward_look_for_target=forward_look_for_target)
 features = pd.DataFrame(index=candlesticks.index)
 
 features = model.generate_features(candlesticks, features)
@@ -34,7 +34,7 @@ features
 
 # %%
 target.describe()
-target.value_counts()
+# target.value_counts()
 
 
 # %%
@@ -46,29 +46,33 @@ target.value_counts()
 ) = split_features_and_target_into_train_and_test_set(features, {0: target}, 20)
 
 # remove the last rows where there are no target
-test_set_features = test_set_features[: -forward_look_for_target]
-test_set_targets[0] = test_set_targets[0][: -forward_look_for_target]
+test_set_features = test_set_features[:-forward_look_for_target]
+test_set_targets[0] = test_set_targets[0][:-forward_look_for_target]
 
 # %%
-model.train(training_set_features, training_set_targets[0])
+model.train(
+    training_set_features,
+    training_set_targets[0],
+    validation_features=test_set_features,
+    validation_target=test_set_targets[0],
+)
 
 # %%
-model.evaluate(test_set_features, test_set_targets[0])
+# model.evaluate(test_set_features, test_set_targets[0])
 
 # %%
 predictions = model.predict_dataframe(test_set_features)
-print(classification_report(test_set_targets[0], predictions))
-
-
+compare = pd.concat([pd.DataFrame(predictions).reset_index(), test_set_targets[0].reset_index()], axis=1)
+# print(classification_report(test_set_targets[0], predictions))
 
 
 # %%
 
-        targets = self._generate_targets(candlesticks, features)
-        (
-            training_set_features,
-            training_set_targets,
-            _,
+# targets = self._generate_targets(candlesticks, features)
+#  (
+#             training_set_features,
+#             training_set_targets,
+#             _,
 # %%
 start_index = 10000
 split_index = 25000
@@ -120,3 +124,5 @@ prediction = model.predict(test_candles, test_features)
 prediction
 # prediction
 # %%
+
+

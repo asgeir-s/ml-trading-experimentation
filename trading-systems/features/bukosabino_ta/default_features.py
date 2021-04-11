@@ -2,7 +2,9 @@ import pandas as pd
 import ta
 
 
-def compute(candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame) -> pd.DataFrame:
+def compute(
+    candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+) -> pd.DataFrame:
     if "trend_visual_ichimoku_a" in features_already_computed.columns:
         return features_already_computed
     else:

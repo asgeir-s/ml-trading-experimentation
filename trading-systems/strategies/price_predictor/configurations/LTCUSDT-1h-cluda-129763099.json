@@ -9,12 +9,12 @@
     "highestHighBuyThreshold": 1,
     "closePredictionSellThreshold": -0.2,
     "backtest": {
-        "startPosition": 20000,
+        "startPosition": 28000,
         "missingTargetsAtTheEnd": 4
     },
-    "closeModelPath": "./strategies/price_predictor/tmp/models/close_model_USDT-LTC1",
-    "lowModelPath": "./strategies/price_predictor/tmp/models/low_model_USDT-LTC1",
-    "highModelPath": "./strategies/price_predictor/tmp/models/high_model_USDT-LTC1",
-    "loadModelFromPath": "True",
+    "closeModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/close",
+    "lowModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/low",
+    "highModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/high",
+    "loadModelFromPath": "False",
     "saveModelToPath": "True"
 }

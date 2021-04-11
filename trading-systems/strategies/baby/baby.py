@@ -23,9 +23,9 @@ class Baby(Strategy):
         trades: pd.DataFrame,
         predictions: Dict[Any, float],
     ) -> Optional[Tuple[TradingSignal, str]]:
-        last_time, last_signal, last_price = self.get_last_trade(trades)
+        last_time, last_signal, last_price = self.get_last_executed_trade(trades)
         if last_signal is None:
-            last_signal = TradingSignal.SELL
+            last_signal = TradingSignal.CLOSE
 
         lowest_min_prediction = predictions[self.models[0]]
         highest_high_prediction = predictions[self.models[1]]
@@ -35,21 +35,21 @@ class Baby(Strategy):
         print(f"highesthigh: {highest_high_prediction}")
 
         signal: Optional[Tuple[TradingSignal, str]] = None
-        if last_signal == TradingSignal.SELL and highest_high_prediction > (
+        if last_signal == TradingSignal.CLOSE and highest_high_prediction > (
             2.0 * lowest_min_prediction * -1
         ):
             current_price = features.tail(1)["close"].values[0]
             self.stop_loss = current_price * self.stop_loss_treshold
             signal = (
-                TradingSignal.BUY,
+                TradingSignal.LONG,
                 "Its predicted that the highest high will be more then two times the lowest low",
             )
         elif (
-            last_signal == TradingSignal.BUY
+            last_signal == TradingSignal.LONG
             and (lowest_min_prediction * -1) > highest_high_prediction
         ):
             signal = (
-                TradingSignal.SELL,
+                TradingSignal.CLOSE,
                 "Its predicted that the lowest low is larger then the highest high",
             )
         return signal
