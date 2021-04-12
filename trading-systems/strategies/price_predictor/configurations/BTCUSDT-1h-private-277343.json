@@ -15,6 +15,6 @@
     "closeModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/v2/close_1",
     "lowModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/v2/low_1",
     "highModelPath": "./strategies/price_predictor/tmp/models/model_USDT-BTC/v2/high_1",
-    "loadModelFromPath": "False",
-    "saveModelToPath": "True"
+    "loadModelFromPath": "True",
+    "saveModelToPath": "False"
 }

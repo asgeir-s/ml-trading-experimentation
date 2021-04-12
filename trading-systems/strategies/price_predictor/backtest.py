@@ -1,5 +1,5 @@
-# from strategies import PricePredictor as Strategy
-from strategies import PricePredictor2 as Strategy
+# from strategies import PricePredicto as Strategy
+from strategies import PricePredictorV1 as Strategy
 from lib import data_util
 from lib.backtest import Backtest, setup_file_path
 from lib.charting import chartTrades
@@ -58,21 +58,33 @@ def main(binance_client, config):
 
     print("Start generating features")
     features = strategy.generate_features(candlesticks)[:-MISSING_TARGETS_AT_THE_END]
-    # targets = strategy._generate_targets(candlesticks, features)
+    targets = strategy._generate_targets(candlesticks, features)
     candlesticks = candlesticks[:-MISSING_TARGETS_AT_THE_END]
     trade_end_position = len(candlesticks)
     print("Finished generating features")
 
     # TODO: fix this to run with the new refactoring
-    trades = Backtest.run(
+
+    trades = Backtest._runWithTarget(
         strategy=strategy,
         features=features,
         candlesticks=candlesticks,
         start_position=TRADE_START_POSITION,
         end_position=trade_end_position,
+        targets=targets,
         # signals_csv_path=path_builder("signals"),
         trades_csv_path=path_builder("trades"),
+        no_init_training=True
     )
+    # trades = Backtest.run(
+    #     strategy=strategy,
+    #     features=features,
+    #     candlesticks=candlesticks,
+    #     start_position=TRADE_START_POSITION,
+    #     end_position=trade_end_position,
+    #     # signals_csv_path=path_builder("signals"),
+    #     trades_csv_path=path_builder("trades"),
+    # )
     # trades = Backtest.evaluate(
     #     signals, candlesticks, TRADE_START_POSITION, trade_end_position, 0.001
     # )

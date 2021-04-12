@@ -9,7 +9,7 @@
     "highestHighBuyThreshold": 1,
     "closePredictionSellThreshold": -0.2,
     "backtest": {
-        "startPosition": 28000,
+        "startPosition": 20000,
         "missingTargetsAtTheEnd": 4
     },
     "closeModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/close",

@@ -1,3 +1,4 @@
 # flake8: noqa
-from .price_predictor_old import PricePredictorOld
-from .price_predictor_2 import PricePredictor2
+from .price_predictor_v1 import PricePredictorV1
+from .price_predictor_v2 import PricePredictorV2
+from .price_predictor_v3 import PricePredictorV3

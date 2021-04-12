@@ -25,13 +25,14 @@ class Strategy(abc.ABC):
         The models should be initiated here.
         """
 
-    def init(self, candlesticks: DataFrame, features: DataFrame) -> None:
+    def init(self, candlesticks: DataFrame, features: DataFrame, no_training: bool = False) -> None:
         """
         Should be called when sitting up a strategy.
         """
         print("min_value_base_asset:", self.min_value_base_asset)
         print("min_value_asset:", self.min_value_asset)
-        self.__train(candlesticks, features)
+        if not no_training:
+            self.__train(candlesticks, features)
 
     def on_candlestick(
         self,

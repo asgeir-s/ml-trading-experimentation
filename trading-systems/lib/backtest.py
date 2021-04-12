@@ -42,11 +42,12 @@ class Backtest:
         signals_csv_path: Optional[str] = None,
         trades_csv_path: Optional[str] = None,
         fee: float = 0.001,
+        no_init_training: bool = False # used when testing target directly (so we don't need to wait for unnecessary traing)
     ) -> pd.DataFrame:
-        """Test trading the target, without prediction. To check if the target is good."""
+        """Test trading the target, without prediction. To check if the target is good and strategy has potential."""
         init_features = features.iloc[:start_position]
         init_candlesticks = candlesticks.iloc[:start_position]
-        strategy.init(candlesticks=init_candlesticks, features=init_features)
+        strategy.init(candlesticks=init_candlesticks, features=init_features, no_training=no_init_training)
 
         candlesticks_periode = candlesticks.iloc[start_position:end_position]
         start_time = pd.to_datetime(
