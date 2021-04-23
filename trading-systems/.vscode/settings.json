@@ -1,5 +1,5 @@
 {
-  "python.pythonPath": "../conda_env_py38/bin/python",
+  "python.pythonPath": "/Users/sogasg/dev/cluda/tb2/tb2-local/conda_env_py38/bin/python",
   "python.analysis.extraPaths": ["${workspaceFolder}"],
   "cSpell.words": [
     "BTCUSDT",

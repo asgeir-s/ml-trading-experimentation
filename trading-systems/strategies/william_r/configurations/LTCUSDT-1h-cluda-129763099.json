@@ -1,8 +1,8 @@
 {
-    "name": "price_predictor_runner_1",
+    "name": "william_r",
     "binanceApiSecretPath": "./secrets/cluda.json",
     "baseAsset": "USDT",
-    "minValueBaseAsset": 30,
+    "minValueBaseAsset": 0.001,
     "asset": "LTC",
     "minValueAsset": 0.1,
     "candleInterval": "2h",
@@ -12,9 +12,9 @@
         "startPosition": 10000,
         "missingTargetsAtTheEnd": 4
     },
-    "closeModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/close",
-    "lowModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/low",
-    "highModelPath": "./strategies/price_predictor/tmp/models/LTCUSDT/v1/high",
+    "closeModelPath": "./strategies/william_r/tmp/models/LTCUSDT/v1/close",
+    "lowModelPath": "./strategies/william_r/tmp/models/LTCUSDT/v1/low",
+    "highModelPath": "./strategies/william_r/tmp/models/LTCUSDT/v1/high",
     "loadModelFromPath": "True",
     "saveModelToPath": "True"
 }

@@ -17,28 +17,28 @@ class PricePredictorV3(Strategy):
             PricePreditionLSTMModel(
                 target_name="close",
                 forward_look_for_target=1,
-                window_size=15,
+                window_size=25,
                 model_path=self.configurations["closeModelPath"],
                 should_save_model=(self.configurations["saveModelToPath"] == "True"),
             ),
             PricePreditionLSTMModel(
                 target_name="ema",
                 forward_look_for_target=3,
-                window_size=15,
+                window_size=25,
                 model_path=self.configurations["lowModelPath"],
                 should_save_model=(self.configurations["saveModelToPath"] == "True"),
             ),
             PricePreditionLSTMModel(
                 target_name="low",
                 forward_look_for_target=6,
-                window_size=15,
+                window_size=25,
                 model_path=self.configurations["highModelPath"],
                 should_save_model=(self.configurations["saveModelToPath"] == "True"),
             ),
             PricePreditionLSTMModel(
                 target_name="high",
                 forward_look_for_target=6,
-                window_size=15,
+                window_size=25,
                 model_path=self.configurations["highModelPath"],
                 should_save_model=(self.configurations["saveModelToPath"] == "True"),
             ),
@@ -101,6 +101,7 @@ class PricePredictorV3(Strategy):
             and high_pred > 0.5
             and (high_pred > (1.6 * (low_pred * -1)) or low_pred > 0)
             and close_pred > 0.02
+            and ema_pred > 0
         ):
             stop_loss_price = current_price * 0.98  # 1% ned
             print(f"Buy signal at: {current_price}")

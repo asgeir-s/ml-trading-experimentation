@@ -4,3 +4,7 @@ trading-systems/secrets.json
 **/.DS_Store
 trading-systems/secrets/**
 conda_env_py38
+trading-systems/rl/finrl/tensorboard_log
+trading-systems/rl/tensortrade/agents
+trading-systems/rl/tensortrade/charts
+trading-systems/rl/tensortrade/log

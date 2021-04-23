@@ -7,3 +7,4 @@ from .baby import Baby
 from .price_predictor import PricePredictorV1
 from .price_predictor import PricePredictorV2
 from .price_predictor import PricePredictorV3
+from .william_r import WilliamR

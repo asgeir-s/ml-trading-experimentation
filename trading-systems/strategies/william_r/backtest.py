@@ -1,4 +1,7 @@
-from strategies import PricePredictorV3 as Strategy
+from pandas.core.frame import DataFrame
+from features.bukosabino_ta import default_features
+from strategies import WilliamR as Strategy
+from strategies import PricePredictorV3
 from lib import data_util
 from lib.backtest import Backtest, setup_file_path
 from lib.charting import chartTrades
@@ -37,7 +40,7 @@ def main(binance_client, config):
         configurations=config,
     )
     tmp_path = (
-        "./strategies/price_predictor/tmp/backtest/"
+        "./strategies/william_r/tmp/backtest/"
         + strategy.__class__.__name__
         + "-"
         + BASE_ASSET
@@ -51,14 +54,17 @@ def main(binance_client, config):
     print("Start loading candlesticks")
     candlesticks = data_util.load_candlesticks(
         instrument=ASSET + BASE_ASSET,
-        interval=CANDLESTICK_INTERVAL, binance_client=binance_client
+        interval=CANDLESTICK_INTERVAL,
+        binance_client=binance_client,
     )
     print("Finished loading candlesticks")
 
     print("Start generating features")
-    features = strategy.generate_features(candlesticks)[:-MISSING_TARGETS_AT_THE_END]
+    # features = strategy.generate_features(candlesticks)[:-MISSING_TARGETS_AT_THE_END]
     # targets = strategy._generate_targets(candlesticks, features)
     candlesticks = candlesticks[:-MISSING_TARGETS_AT_THE_END]
+    features = DataFrame(index=candlesticks.index)
+    features = default_features.compute(candlesticks, features)
     trade_end_position = len(candlesticks)
     print("Finished generating features")
 
