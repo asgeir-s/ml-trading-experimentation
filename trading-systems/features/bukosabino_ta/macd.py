@@ -1,23 +1,24 @@
 import pandas as pd
 import ta
+from ta.trend import MACD
 from lib.feature_util import get_name
 
 
 def compute(
     candlesticks: pd.DataFrame,
     features_already_computed: pd.DataFrame,
-    n_slow: int,
-    n_fast: int,
-    n_signal: int,
+    window_slow: int,
+    window_fast: int,
+    window_signal: int,
 ) -> pd.DataFrame:
     """
-    default from lib: n_slow: int = 26, n_fast: int = 12, n_sign: int = 9
+    default from lib: window_slow: int = 26, window_fast: int = 12, window_sign: int = 9
     """
     prefix = "trend"
-    postfix = str(n_slow) + "_" + str(n_fast) + "_" + str(n_signal)
-
-    indicator = ta.trend.MACD(
-        close=candlesticks["close"], n_slow=n_slow, n_fast=n_fast, n_sign=n_signal, fillna=False
+    postfix = str(window_slow) + "_" + str(window_fast) + "_" + str(window_signal)
+    
+    indicator = MACD(
+        close=candlesticks["close"], window_slow=window_slow, window_fast=window_fast, window_sign=window_signal, fillna=False
     )
 
     indicator_names = ["macd", "macd_diff", "macd_signal"]

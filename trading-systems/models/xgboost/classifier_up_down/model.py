@@ -3,8 +3,6 @@ import xgboost as xgb
 from features.bukosabino_ta import default_features, macd, roc
 from targets.classes import up_down
 import pandas as pd
-from dataclasses import dataclass
-
 
 
 class ClassifierUpDownModel(XgboostBaseModel):
@@ -23,12 +21,12 @@ class ClassifierUpDownModel(XgboostBaseModel):
             validate_parameters=True,
         )
 
-    @staticmethod
     def generate_features(
-        candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+        self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
     ) -> pd.DataFrame:
         features = default_features.compute(
-            candlesticks.drop(columns=["open time", "close time"]), features_already_computed
+            candlesticks.drop(columns=["open time",]),
+            features_already_computed,
         )
         features = macd.compute(candlesticks, features, 100, 30, 20)
         features = macd.compute(candlesticks, features, 300, 100, 50)
@@ -48,11 +46,11 @@ class ClassifierUpDownModel(XgboostBaseModel):
 
         return features
 
-    def generate_target(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> pd.Series:
         return up_down.generate_target(
-            df=features,
-            column=self.target_feature_to_predict,
-            treshold=self.treshold,
+            df=features, column=self.target_feature_to_predict, treshold=self.treshold,
         )
 
     def __hash__(self) -> int:

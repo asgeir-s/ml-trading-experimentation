@@ -18,17 +18,31 @@ import lightgbm as lgb
 from sklearn.metrics import mean_squared_error, make_scorer
 from scipy import stats
 from sklearn.model_selection import RandomizedSearchCV
+from lib.backtest import setup_file_path
 
+ASSET = "LTC"
+BASE_ASSET = "USDT"
+CANDLESTICK_INTERVAL = "1h"
+
+tmp_path = (
+    "../../../tmp/targets/"
+    + BASE_ASSET
+    + ASSET
+    + "-"
+    + CANDLESTICK_INTERVAL
+    + "/"
+)
+path_builder = setup_file_path(tmp_path)
 
 # %%
-candlesticks = load_candlesticks("BTCUSDT", "1h", custom_data_path="../../../tmp")
+candlesticks = load_candlesticks(ASSET + BASE_ASSET, CANDLESTICK_INTERVAL, custom_data_path="../../../tmp")
 
 candlesticks
 
 
 # %%
-# model = RegressionBabyMaxModel()
-model = RegressionBabyMinModel()
+model = RegressionBabyMaxModel()
+# model = RegressionBabyMinModel()
 features = pd.DataFrame(index=candlesticks.index)
 
 features = model.generate_features(candlesticks, pd.DataFrame(index=candlesticks.index))
@@ -40,6 +54,8 @@ features.head(2000)
 # %%
 target.describe()
 
+# %%
+target.to_csv(path_builder("lightgbm_regression_baby_max"))
 
 # %%
 (

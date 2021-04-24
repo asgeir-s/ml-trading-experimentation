@@ -32,7 +32,7 @@ class Model(abc.ABC):
 
     @abc.abstractmethod
     def evaluate(
-        self, testSetFeatures: pd.DataFrame, testSetTarget: pd.Series
+        self, test_set_features: pd.DataFrame, test_set_target: pd.Series
     ) -> None:
         """Evaluate"""
 
@@ -48,7 +48,6 @@ class Model(abc.ABC):
     def load_model(self, number_of_inputs: int) -> None:
         """Load a pre-trained the model."""
 
-    # @staticmethod
     @abc.abstractmethod
     def generate_features(
         self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
@@ -56,7 +55,6 @@ class Model(abc.ABC):
         """Given a dataframe with the candlestick data and the features that are already computed,it
         should add any new features to the features_already_computed DataFrame and return it."""
 
-    # @staticmethod
     @abc.abstractmethod
     def generate_target(
         self, candlesticks: pd.DataFrame, features: pd.DataFrame

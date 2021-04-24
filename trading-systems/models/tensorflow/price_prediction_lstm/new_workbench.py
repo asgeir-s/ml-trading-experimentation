@@ -10,20 +10,36 @@ sys.path.insert(0, os.path.abspath("../../.."))
 
 
 # %%
-from models.tensorflow.price_prediction_lstm import PricePreditionLSTMModelOld as PricePreditionLSTMModel
+from models.tensorflow.price_prediction_lstm import PricePreditionLSTMModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
-from lib.data_util import load_candlesticks  
+from lib.data_util import load_candlesticks
+from lib.backtest import setup_file_path
+
+ASSET = "LTC"
+BASE_ASSET = "USDT"
+CANDLESTICK_INTERVAL = "1h"
+
+tmp_path = (
+    "../../../tmp/targets/" + BASE_ASSET + ASSET + "-" + CANDLESTICK_INTERVAL + "/"
+)
+path_builder = setup_file_path(tmp_path)
 
 # %%
-candlesticks = load_candlesticks("BTCUSDT", "1h", custom_data_path="../../../tmp")
+candlesticks = load_candlesticks(
+    ASSET + BASE_ASSET, CANDLESTICK_INTERVAL, custom_data_path="../../../tmp"
+)
 
 candlesticks
 
-
 # %%
-forward_look_for_target = 1
-model = PricePreditionLSTMModel(target_name="close", forward_look_for_target=forward_look_for_target)
+# forward_look_for_target = 1
+# model = PricePreditionLSTMModel(target_name="close", forward_look_for_target=forward_look_for_target)
+model = PricePreditionLSTMModel(
+                target_name="high",
+                forward_look_for_target=6,
+                window_size=25,
+)
 features = pd.DataFrame(index=candlesticks.index)
 
 features = model.generate_features(candlesticks, features)
@@ -36,6 +52,8 @@ features
 target.describe()
 # target.value_counts()
 
+# %%
+target.to_csv(path_builder("PricePreditionLSTMModel_high"))
 
 # %%
 (
@@ -62,7 +80,9 @@ model.train(
 
 # %%
 predictions = model.predict_dataframe(test_set_features)
-compare = pd.concat([pd.DataFrame(predictions).reset_index(), test_set_targets[0].reset_index()], axis=1)
+compare = pd.concat(
+    [pd.DataFrame(predictions).reset_index(), test_set_targets[0].reset_index()], axis=1
+)
 # print(classification_report(test_set_targets[0], predictions))
 
 
@@ -124,5 +144,4 @@ prediction = model.predict(test_candles, test_features)
 prediction
 # prediction
 # %%
-
 

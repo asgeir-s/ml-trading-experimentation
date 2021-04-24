@@ -52,7 +52,7 @@ class PricePreditionLSTMModel(Model):
         # relative_input = relative_input.clip(-5, 5)
 
         day = 24 * 60 * 60
-        relative_input["time_of_day"] = np.sin((candlesticks["close time"]/1000) * (2 * np.pi / day))
+        relative_input["time_of_day"] = np.sin((candlesticks.index.values.astype(np.int64)/1000) * (2 * np.pi / day))
 
         computed_features = default_features.compute(
             candlesticks[raw_input_cols + ["volume"]], features_already_computed

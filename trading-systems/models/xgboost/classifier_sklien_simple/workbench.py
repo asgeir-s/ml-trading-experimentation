@@ -3,6 +3,7 @@
 # %% [markdown]
 # ## ClassifierSklienSimpleModel
 
+sys.path.insert(0, os.path.abspath("../../.."))
 # %%
 import os, sys
 from sklearn.metrics import classification_report
@@ -10,14 +11,26 @@ from models.xgboost import ClassifierSklienSimpleModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
 from lib.data_util import load_candlesticks
+from lib.backtest import setup_file_path
 
-sys.path.insert(0, os.path.abspath("../../.."))
+ASSET = "LTC"
+BASE_ASSET = "USDT"
+CANDLESTICK_INTERVAL = "1h"
+
+tmp_path = (
+    "../../../tmp/targets/"
+    + BASE_ASSET
+    + ASSET
+    + "-"
+    + CANDLESTICK_INTERVAL
+    + "/"
+)
+path_builder = setup_file_path(tmp_path)
 
 # %%
-candlesticks = load_candlesticks("BTCUSDT", "1h", custom_data_path="../../../tmp")
+candlesticks = load_candlesticks(ASSET + BASE_ASSET, CANDLESTICK_INTERVAL, custom_data_path="../../../tmp")
 
 candlesticks
-
 
 # %%
 model = ClassifierSklienSimpleModel()
@@ -33,6 +46,9 @@ target.head(20)
 # %%
 target.describe()
 target.value_counts()
+
+# %%
+target.to_csv(path_builder("classifier_sklien_simple"))
 
 
 # %%

@@ -27,10 +27,24 @@ from sklearn.metrics import mean_squared_error, make_scorer, mean_absolute_error
 from features.bukosabino_ta import default_features, macd, roc
 from sklearn.preprocessing import StandardScaler
 from lib.window_generator import WindowGenerator
+from lib.backtest import setup_file_path
 
+ASSET = "LTC"
+BASE_ASSET = "USDT"
+CANDLESTICK_INTERVAL = "1h"
+
+tmp_path = (
+    "../../../tmp/targets/"
+    + BASE_ASSET
+    + ASSET
+    + "-"
+    + CANDLESTICK_INTERVAL
+    + "/"
+)
+path_builder = setup_file_path(tmp_path)
 
 # %%
-candlesticks = load_candlesticks("BTCUSDT", "1h", custom_data_path="../../../tmp")
+candlesticks = load_candlesticks(ASSET + BASE_ASSET, CANDLESTICK_INTERVAL, custom_data_path="../../../tmp")
 
 candlesticks
 

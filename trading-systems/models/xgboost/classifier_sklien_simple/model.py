@@ -21,10 +21,11 @@ class ClassifierSklienSimpleModel(XgboostBaseModel):
             eval_metric="merror",
         )
 
-    @staticmethod
-    def generate_features(candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame):
+    def generate_features(
+        self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+    ):
         features = default_features.compute(
-            candlesticks.drop(columns=["open time", "close time"]), features_already_computed
+            candlesticks.drop(columns=["open time",]), features_already_computed
         )
         features = macd.compute(candlesticks, features, 100, 30, 20)
         features = macd.compute(candlesticks, features, 300, 100, 50)
@@ -42,8 +43,9 @@ class ClassifierSklienSimpleModel(XgboostBaseModel):
 
         return features
 
-    @staticmethod
-    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> pd.Series:
         df = trend_force.generate_target(candlesticks)
         df = df.replace([-2, -1, 0, 1, 2], 1)
         df = df.replace([5, 4, 3], 2)

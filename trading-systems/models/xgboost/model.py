@@ -1,3 +1,4 @@
+from pandas.core.frame import DataFrame
 import xgboost as xgb
 import pandas as pd
 import numpy as np
@@ -37,7 +38,16 @@ class XgboostBaseModel(Model):
             dataframe."""
         )
         prediction = self.model.predict(df)
-        return prediction
+        df = DataFrame(prediction, index=df.index)
+        return df
+
+    def save_model(self) -> None:
+        """Save the model."""
+        print("WARNING: saving models not implimented")
+
+    def load_model(self, number_of_inputs: int) -> None:
+        """Load a pre-trained the model."""
+        print("WARNING: loading model not implimented")
 
     def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
         predictions = self.model.predict(test_set_features)
@@ -50,21 +60,21 @@ class XgboostBaseModel(Model):
         # print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
         # retrieve performance metrics
-        kfold = StratifiedKFold(n_splits=5)
-        results = cross_val_score(self.model, test_set_features, test_set_target, cv=kfold)
-        print("kfold Accuracy (this only makes sense to classifyers): %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
+        # kfold = StratifiedKFold(n_splits=5)
+        # results = cross_val_score(self.model, test_set_features, test_set_target, cv=kfold)
+        # print("kfold Accuracy (this only makes sense to classifyers): %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
 
     def print_info(self) -> None:
         xgb.plot_importance(self.model)  # type: ignore
         plt.rcParams["figure.figsize"] = [15, 30]
         plt.show()
 
-    @staticmethod
     def generate_features(
-        candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+        self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
     ) -> pd.DataFrame:
         features = default_features.compute(
-            candlesticks.drop(columns=["open time", "close time"]), features_already_computed
+            candlesticks.drop(columns=["open time", "close time"]),
+            features_already_computed,
         )
         features = macd.compute(candlesticks, features, 100, 30, 20)
         features = macd.compute(candlesticks, features, 300, 100, 50)
@@ -81,11 +91,10 @@ class XgboostBaseModel(Model):
         features = roc.compute(candlesticks, features, 80)
         return features
 
-    @staticmethod
-    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
-        return up_down.generate_target(
-            df=candlesticks, column="open", treshold=1.02
-        )
+    def generate_target(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> pd.Series:
+        return up_down.generate_target(df=candlesticks, column="open", treshold=1.02)
 
     def __hash__(self) -> int:
         return hash(self.__class__.__name__) + hash(self.model)

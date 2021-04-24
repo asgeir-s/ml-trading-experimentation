@@ -117,7 +117,7 @@ def load_candlesticks(
     return (
         candlesticks[instrument][interval]
         .drop_duplicates(subset=["open time"])
-        .set_index("open time")
+        .set_index("close time")
     )
 
 

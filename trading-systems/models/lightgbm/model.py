@@ -52,5 +52,13 @@ class LightGBMBaseModel(Model):
         plt.rcParams["figure.figsize"] = [15, 30]
         plt.show()
 
+    def save_model(self) -> None:
+        """Save the model."""
+        print("WARNING: saving models not implimented")
+
+    def load_model(self, number_of_inputs: int) -> None:
+        """Load a pre-trained the model."""
+        print("WARNING: loading model not implimented")
+
     def __hash__(self) -> int:
         return hash(self.__class__.__name__) + hash(self.model)

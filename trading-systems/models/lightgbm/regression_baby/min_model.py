@@ -7,8 +7,7 @@ from targets.regression import max_over_periods
 @dataclass  # type: ignore
 class RegressionBabyMinModel(RegressionBabyMaxModel):
 
-    @staticmethod
-    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
         return max_over_periods.generate_target(
             candlesticks, column="low", periodes=6, percentage=True, min=True
         )

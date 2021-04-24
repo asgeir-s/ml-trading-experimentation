@@ -16,4 +16,4 @@ def generate_target(
         ),
     ]
     choices = [1, 0]
-    return pd.Series(np.select(conditions, choices, default=1))
+    return pd.Series(np.select(conditions, choices, default=1), index=df.index)

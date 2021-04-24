@@ -27,10 +27,12 @@ class RegressionBabyMaxModel(LightGBMBaseModel):
             subsample=0.9170884223554043,
         )
 
-    @staticmethod
-    def generate_features(candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame):
+    def generate_features(
+        self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame
+    ):
         features = default_features.compute(
-            candlesticks.drop(columns=["open time", "close time"]), features_already_computed
+            candlesticks.drop(columns=["open time",]),
+            features_already_computed,
         )
         features = macd.compute(candlesticks, features, 100, 30, 20)
         features = macd.compute(candlesticks, features, 300, 100, 50)
@@ -48,8 +50,9 @@ class RegressionBabyMaxModel(LightGBMBaseModel):
 
         return features
 
-    @staticmethod
-    def generate_target(candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> pd.Series:
         return max_over_periods.generate_target(
             candlesticks, column="high", periodes=6, percentage=True
         )
