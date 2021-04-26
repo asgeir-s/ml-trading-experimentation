@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath("../../.."))
 from models.lightgbm import RegressionBabyMaxModel, RegressionBabyMinModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
-from lib.data_util import load_candlesticks
+from lib.data_util import load_candlesticks, simulate_periodically_retrain
 import lightgbm as lgb
 from sklearn.metrics import mean_squared_error, make_scorer
 from scipy import stats
@@ -41,8 +41,8 @@ candlesticks
 
 
 # %%
-model = RegressionBabyMaxModel()
-# model = RegressionBabyMinModel()
+# model = RegressionBabyMaxModel()
+model = RegressionBabyMinModel()
 features = pd.DataFrame(index=candlesticks.index)
 
 features = model.generate_features(candlesticks, pd.DataFrame(index=candlesticks.index))
@@ -55,7 +55,14 @@ features.head(2000)
 target.describe()
 
 # %%
-target.to_csv(path_builder("lightgbm_regression_baby_max"))
+# target.to_csv(path_builder("lightgbm_regression_baby_max"))
+
+predictions = simulate_periodically_retrain(
+    model, features, target, start_running_index=10000, training_interval=720
+)
+
+# %%
+predictions.to_csv(path_builder("lightgbm_regression_baby_min_pred"))
 
 # %%
 (

@@ -39,7 +39,8 @@ class LightGBMBaseModel(Model):
             dataframe."""
         )
         prediction = self.model.predict(df)
-        return prediction
+        df = pd.DataFrame(prediction, index=df.index)
+        return df
 
     def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
         predictions = self.model.predict(test_set_features)

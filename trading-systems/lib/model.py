@@ -9,6 +9,7 @@ class Model(abc.ABC):
     model: Any = None
     model_path: str = ".tmp/model_weights"
     should_save_model: bool = False
+    window_size: int = 1
 
     @abc.abstractmethod
     def __post_init__(self) -> None:
@@ -22,12 +23,19 @@ class Model(abc.ABC):
 
     @abc.abstractmethod
     def predict(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> float:
-        """"
+        """
         Only the prediction for the last row is returned.
 
         The data frame should include data up until the datapont to be predicted.
         The returned value should be a number between -1 and 1. Where -1 means sell
         and 1 means buy. The closer to -1 or 1 the number is the more sure is the signal.
+        """
+
+    @abc.abstractmethod
+    def predict_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+       (only meant for use in evaluation). This will predict all rows in the
+        dataframe.
         """
 
     @abc.abstractmethod

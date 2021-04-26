@@ -32,7 +32,7 @@ class XgboostBaseModel(Model):
         prediction = self.model.predict(features.tail(1))[0]
         return prediction
 
-    def predict_dataframe(self, df: pd.DataFrame):
+    def predict_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         print(
             """Warning: using predict_dataframe (only meant for use in evaluation). This will predict all rows in the
             dataframe."""

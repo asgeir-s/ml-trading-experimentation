@@ -54,21 +54,24 @@ target.to_csv(path_builder("classifier_up_down"))
 
 # %%
 start_running_index = 10000 # end of initial training
-training_interval = 500
+training_interval = 720
 last_index = start_running_index
 done = False
 predictions = None
 
 # %% initial training
 model.train(features[0:start_running_index], target[0:start_running_index])
-# %%
+
+# %% simulate live running with periodically retraining
 while last_index < len(features):
     start_index = last_index
     stop_index = (
-        last_index + training_interval
+        (last_index + training_interval)
         if len(features) > (last_index + training_interval)
         else len(features)
     )
+    print(f"{start_index}")
+    print(f"{stop_index}")
     new_pred = model.predict_dataframe(features[start_index:stop_index])
     if predictions is None:
         predictions = new_pred
@@ -76,9 +79,10 @@ while last_index < len(features):
         predictions = predictions.append([new_pred])
     model.train(features[:stop_index], target[:stop_index])
     last_index = stop_index
+    print(f"{last_index=}")
 
 # %%
-predictions.to_csv(path_builder("classifier_up_down"))
+predictions.to_csv(path_builder("classifier_up_down_pred"))
 
 # %%
 print(classification_report(target[start_running_index:], predictions))

@@ -10,7 +10,7 @@ from sklearn.metrics import classification_report
 from models.xgboost import ClassifierSklienSimpleModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
-from lib.data_util import load_candlesticks
+from lib.data_util import load_candlesticks, simulate_periodically_retrain
 from lib.backtest import setup_file_path
 
 ASSET = "LTC"
@@ -18,26 +18,21 @@ BASE_ASSET = "USDT"
 CANDLESTICK_INTERVAL = "1h"
 
 tmp_path = (
-    "../../../tmp/targets/"
-    + BASE_ASSET
-    + ASSET
-    + "-"
-    + CANDLESTICK_INTERVAL
-    + "/"
+    "../../../tmp/targets/" + BASE_ASSET + ASSET + "-" + CANDLESTICK_INTERVAL + "/"
 )
 path_builder = setup_file_path(tmp_path)
 
 # %%
-candlesticks = load_candlesticks(ASSET + BASE_ASSET, CANDLESTICK_INTERVAL, custom_data_path="../../../tmp")
+candlesticks = load_candlesticks(
+    ASSET + BASE_ASSET, CANDLESTICK_INTERVAL, custom_data_path="../../../tmp"
+)
 
 candlesticks
 
 # %%
 model = ClassifierSklienSimpleModel()
 
-features = model.generate_features(
-    candlesticks, pd.DataFrame(index=candlesticks.index)
-)
+features = model.generate_features(candlesticks, pd.DataFrame(index=candlesticks.index))
 target = model.generate_target(candlesticks, features)
 
 target.head(20)
@@ -48,8 +43,15 @@ target.describe()
 target.value_counts()
 
 # %%
-target.to_csv(path_builder("classifier_sklien_simple"))
+# target.to_csv(path_builder("classifier_sklien_simple"))
 
+# %%
+predictions = simulate_periodically_retrain(
+    model, features, target, start_running_index=10000, training_interval=720
+)
+
+# %%
+predictions.to_csv(path_builder("classifier_sklien_simple_pred"))
 
 # %%
 (

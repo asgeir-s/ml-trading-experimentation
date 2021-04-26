@@ -17,15 +17,19 @@ from targets.regression import ema
 class PricePreditionLSTMModel(Model):
     target_name: str = "close"
     forward_look_for_target: int = 6
-    window_size:  int = 100
     target_col: str = "not set"
     scaler = None
 
     def __post_init__(self) -> None:
-        self.target_col = f"target-{self.target_name}-next-{self.forward_look_for_target}"
+        self.target_col = (
+            f"target-{self.target_name}-next-{self.forward_look_for_target}"
+        )
 
     def generate_features(
-        self, candlesticks: pd.DataFrame, features_already_computed: pd.DataFrame, reset_scaler: bool = False,
+        self,
+        candlesticks: pd.DataFrame,
+        features_already_computed: pd.DataFrame,
+        reset_scaler: bool = False,
     ) -> pd.DataFrame:
 
         raw_input_cols = [
@@ -41,9 +45,13 @@ class PricePreditionLSTMModel(Model):
         ]
 
         relative_input = pd.DataFrame(index=candlesticks.index)
-        relative_input["high"] = (candlesticks["high"] / candlesticks["open"] * 100) - 100
+        relative_input["high"] = (
+            candlesticks["high"] / candlesticks["open"] * 100
+        ) - 100
         relative_input["low"] = (candlesticks["low"] / candlesticks["open"] * 100) - 100
-        relative_input["close"] = (candlesticks["close"] / candlesticks["open"] * 100) - 100
+        relative_input["close"] = (
+            candlesticks["close"] / candlesticks["open"] * 100
+        ) - 100
         # relative_input = (
         #     (candlesticks[raw_input_cols] / candlesticks[raw_input_cols].shift(-1)) - 1 # TODO: fix the error. Should not be -1
         # ) * 100
@@ -52,24 +60,36 @@ class PricePreditionLSTMModel(Model):
         # relative_input = relative_input.clip(-5, 5)
 
         day = 24 * 60 * 60
-        relative_input["time_of_day"] = np.sin((candlesticks.index.values.astype(np.int64)/1000) * (2 * np.pi / day))
+        relative_input["time_of_day"] = np.sin(
+            (candlesticks.index.values.astype(np.int64) / 1000) * (2 * np.pi / day)
+        )
 
         computed_features = default_features.compute(
             candlesticks[raw_input_cols + ["volume"]], features_already_computed
         ).drop(columns=["open", "high", "low", "close"])
 
-        computed_features["volume"] = (candlesticks["volume"] / candlesticks["volume"].shift(1) * 100) - 100
+        computed_features["volume"] = (
+            candlesticks["volume"] / candlesticks["volume"].shift(1) * 100
+        ) - 100
         computed_features["quote asset volume"] = (
-            candlesticks["quote asset volume"] / candlesticks["quote asset volume"].shift(1) * 100
+            candlesticks["quote asset volume"]
+            / candlesticks["quote asset volume"].shift(1)
+            * 100
         ) - 100
         computed_features["number of trades"] = (
-            candlesticks["number of trades"] / candlesticks["number of trades"].shift(1) * 100
+            candlesticks["number of trades"]
+            / candlesticks["number of trades"].shift(1)
+            * 100
         ) - 100
         computed_features["taker buy base asset voume"] = (
-            candlesticks["taker buy base asset volume"] / candlesticks["taker buy base asset volume"].shift(1) * 100
+            candlesticks["taker buy base asset volume"]
+            / candlesticks["taker buy base asset volume"].shift(1)
+            * 100
         ) - 100
         computed_features["taker buy quote asset volume"] = (
-            candlesticks["taker buy quote asset volume"] / candlesticks["taker buy quote asset volume"].shift(1) * 100
+            candlesticks["taker buy quote asset volume"]
+            / candlesticks["taker buy quote asset volume"].shift(1)
+            * 100
         ) - 100
 
         computed_features = computed_features.replace([np.inf, -np.inf], np.nan)
@@ -80,14 +100,20 @@ class PricePreditionLSTMModel(Model):
             self.scaler = StandardScaler().fit(computed_features)
 
         computed_features_scaled = DataFrame(
-            self.scaler.transform(computed_features), columns=[computed_features.columns]
+            self.scaler.transform(computed_features),
+            columns=computed_features.columns,
+            index=candlesticks.index,
         )
-        features = pd.concat([relative_input, computed_features_scaled], axis=1, join="inner")
+        features = pd.concat(
+            [relative_input, computed_features_scaled], axis=1, join="inner"
+        )
 
         return features
 
     # @staticmethod
-    def generate_target(self, candlesticks: pd.DataFrame, features: pd.DataFrame) -> pd.Series:
+    def generate_target(
+        self, candlesticks: pd.DataFrame, features: pd.DataFrame
+    ) -> pd.Series:
         candlesticks_copy = candlesticks.copy()
         if self.target_name == "high":
             candlesticks_copy[self.target_col] = (
@@ -104,12 +130,19 @@ class PricePreditionLSTMModel(Model):
                 .shift(-self.forward_look_for_target)
             )
         elif self.target_name == "close":
-            candlesticks_copy[self.target_col] = candlesticks_copy["close"].shift(-self.forward_look_for_target)
+            candlesticks_copy[self.target_col] = candlesticks_copy["close"].shift(
+                -self.forward_look_for_target
+            )
         elif self.target_name == "ema":
             ema_comp = ema.generate_target(candlesticks)
-            return (ema_comp.shift(-self.forward_look_for_target).div(ema_comp) - 1) * 100
+            return (
+                ema_comp.shift(-self.forward_look_for_target).div(ema_comp) - 1
+            ) * 100
 
-        relative_target = (candlesticks_copy[self.target_col].div(candlesticks_copy["close"], axis=0) - 1) * 100
+        relative_target = (
+            candlesticks_copy[self.target_col].div(candlesticks_copy["close"], axis=0)
+            - 1
+        ) * 100
         relative_target.name = self.target_col
         return relative_target
 
@@ -118,14 +151,18 @@ class PricePreditionLSTMModel(Model):
 
     def create_model(self, number_of_inputs: int, window_size: int):
         inputs = keras.Input(shape=(window_size, number_of_inputs))
-        x = keras.layers.Conv1D(12, kernel_size=5, strides=1, padding="causal", activation="relu")(inputs)
+        x = keras.layers.Conv1D(
+            12, kernel_size=5, strides=1, padding="causal", activation="relu"
+        )(inputs)
         # x = keras.layers.LSTM(units=32, return_sequences=True)(x)
         x = keras.layers.LSTM(units=10)(x)
         # x = keras.layers.Dense(32, activation="relu")(x)
         # x = keras.layers.Dense(12, activation="relu")(x)
         outputs = keras.layers.Dense(1, activation="elu")(x)
 
-        model = keras.Model(inputs=inputs, outputs=outputs, name="close_price_prediction")
+        model = keras.Model(
+            inputs=inputs, outputs=outputs, name="close_price_prediction"
+        )
 
         model.compile(
             loss="mean_absolute_error", optimizer="adam", metrics=["mse", "mae"],
@@ -157,7 +194,11 @@ class PricePreditionLSTMModel(Model):
 
             self.model = self.create_model(number_of_inputs, self.window_size)
             w1 = WindowGenerator(
-                df=features_copy, input_width=self.window_size, label_width=1, shift=0, label_columns=[self.target_col],
+                df=features_copy,
+                input_width=self.window_size,
+                label_width=1,
+                shift=0,
+                label_columns=[self.target_col],
             )
             if validation_features is not None and validation_target is not None:
                 val_features_copy = validation_features.copy()
@@ -170,7 +211,9 @@ class PricePreditionLSTMModel(Model):
                     shift=0,
                     label_columns=[self.target_col],
                 )
-                self.model.fit(w1.dataset, batch_size=64, epochs=6, validation_data=w_val.dataset)
+                self.model.fit(
+                    w1.dataset, batch_size=64, epochs=6, validation_data=w_val.dataset
+                )
             else:
                 self.model.fit(w1.dataset, batch_size=64, epochs=6)
 
@@ -197,7 +240,9 @@ class PricePreditionLSTMModel(Model):
             print("predictins nulls")
             print(count_nan_in_df)
 
-        w1 = WindowGenerator(df=needed_features, input_width=self.window_size, label_width=1, shift=0,)
+        w1 = WindowGenerator(
+            df=needed_features, input_width=self.window_size, label_width=1, shift=0,
+        )
         prediction = self.model.predict(w1.features)
         # print("number of predictions:", len(prediction))
         last_predition = prediction[len(prediction) - 1][len(prediction[0]) - 1]
@@ -211,15 +256,21 @@ class PricePreditionLSTMModel(Model):
             dataframe."""
         )
         needed_features = df
+        print(f"df length: {len(df)}")
         needed_features = needed_features.replace([np.inf, -np.inf], np.nan)
         if needed_features.isnull().values.any():
             count_nan_in_df = needed_features.isnull().sum()
             print("predictins nulls")
             print(count_nan_in_df)
 
-        w1 = WindowGenerator(df=needed_features, input_width=self.window_size, label_width=1, shift=0,)
+        w1 = WindowGenerator(
+            df=needed_features, input_width=self.window_size, label_width=1, shift=0,
+        )
+        print(f"w1.features length: {len(w1.features)}")
         prediction = self.model.predict(w1.features)
-        return prediction
+        print(f"predictions length: {len(prediction)}")
+        df = pd.DataFrame(prediction, index=df[self.window_size - 1 :].index)
+        return df
 
     def evaluate(self, test_set_features: pd.DataFrame, test_set_target: pd.Series):
         test_set_features_copy = test_set_features.copy()

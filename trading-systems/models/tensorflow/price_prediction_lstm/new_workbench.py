@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath("../../.."))
 from models.tensorflow.price_prediction_lstm import PricePreditionLSTMModel
 import pandas as pd
 from lib.data_splitter import split_features_and_target_into_train_and_test_set
-from lib.data_util import load_candlesticks
+from lib.data_util import load_candlesticks, simulate_periodically_retrain
 from lib.backtest import setup_file_path
 
 ASSET = "LTC"
@@ -53,7 +53,14 @@ target.describe()
 # target.value_counts()
 
 # %%
-target.to_csv(path_builder("PricePreditionLSTMModel_high"))
+# target.to_csv(path_builder("PricePreditionLSTMModel_high"))
+
+predictions = simulate_periodically_retrain(
+    model, features, target, start_running_index=10000, training_interval=720, window_range=25
+)
+
+# %%
+predictions.to_csv(path_builder("PricePreditionLSTMModel_high_pred"))
 
 # %%
 (

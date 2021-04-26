@@ -1,3 +1,6 @@
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
+from lib.model import Model
 import pandas as pd
 from pathlib import Path
 from typing import Union, Dict, Any, Optional
