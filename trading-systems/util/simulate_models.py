@@ -7,7 +7,7 @@ from models.xgboost import ClassifierSklienSimpleModel, ClassifierUpDownModel
 from lib.model import Model
 
 
-def simulate_running(candlesticks: DataFrame) -> DataFrame:
+def simulate_running(candlesticks: DataFrame, start_running_index = 10000) -> DataFrame:
     models = (
         PricePreditionLSTMModel(
             target_name="close", forward_look_for_target=1, window_size=25,
@@ -41,7 +41,7 @@ def simulate_running(candlesticks: DataFrame) -> DataFrame:
             m,
             features,
             target,
-            start_running_index=10000,
+            start_running_index=start_running_index,
             training_interval=720,
             window_range=m.window_size,
         )
