@@ -23,11 +23,11 @@ from binance.client import Client
 
 binance_client = Client()
 
-
 import os, sys
 
 sys.path.insert(0, os.path.abspath("../.."))
 from util.simulate_models import simulate_running
+from lib.backtest import setup_file_path
 
 from lib.data_util import load_candlesticks
 from rl.tensortrade.position_change_chart import PositionChangeChart
@@ -35,6 +35,9 @@ from rl.tensortrade.position_change_chart import PositionChangeChart
 BASE_ASSET = USDT
 ASSET = LTC
 INTERVAL = "1h"
+
+tmp_path = f"tmp/results/{BASE_ASSET.symbol}{ASSET.symbol}-{INTERVAL}/"
+path_builder = setup_file_path(tmp_path)
 # %%
 candlesticks = load_candlesticks(
     ASSET.symbol + BASE_ASSET.symbol,
@@ -62,11 +65,11 @@ raw_features = ta.add_all_ta_features(
 
 # %% add raw data features
 binance_data = pd.concat([predictions, raw_features], join="inner", axis=1)
-# binance_data = predicted
 candlesticks = binance_data[["open time", "open", "high", "low", "close", "volume"]]
 binance_data = binance_data.drop(
     columns=["open time", "open", "high", "low", "close", "volume"]
 )
+# binance_data = predictions
 
 # %%
 # print(f"binance_data length: {len(binance_data)}")
@@ -125,9 +128,7 @@ def create_env(
     )
 
     action_scheme = ManagedRiskOrders(
-        stop=[0.01, 0.02, 0.03],
-        take=[0.05, 0.08, 0.1, 0.15, 0.2],
-        trade_sizes=[1,],
+        stop=[0.01, 0.02, 0.03], take=[0.08, 0.1, 0.15, 0.2], trade_sizes=[1,],
     )
 
     # action_scheme = BSH(
@@ -174,6 +175,8 @@ def simulate(agent, env: TradingEnv):
     first_run = True
     step = 0
     info = {}
+    start_net_worth = 0
+    end_net_worth = 0
 
     while not done:
         action, _states = agent.predict(obs, deterministic=True)
@@ -181,15 +184,17 @@ def simulate(agent, env: TradingEnv):
         episode_reward += reward
         step += 1
         if first_run:
+            start_net_worth = info["net_worth"]
             print("Initial state", info)
             print(episode_reward)
             first_run = False
 
     print("Final state", info)
+    end_net_worth = info["net_worth"]
     print(episode_reward)
     env.render()
     env.renderer.save()
-    return info
+    return (start_net_worth, end_net_worth)
 
 
 # %% simulate live running with periodically retraining
@@ -207,6 +212,24 @@ def simulate_periodically_retrain(
     last_index = start_running_index
     model = AGENT
     predictions = []
+    results = pd.DataFrame(
+        columns=[
+            "open time",
+            "close time",
+            "open price",
+            "close price",
+            "change in underlying",
+            "change in underlying %",
+            "open new worth",
+            "close net worth",
+            "net worth change",
+            "net worth change %",
+        ]
+    )
+    results_csv_path = path_builder(
+        f"results-{start_running_index}-{training_interval}-{training_window}-{window_for_env}-{window_for_reward}"
+    )
+    results.to_csv(results_csv_path)
     while last_index < len(features):
         start_training_index = last_index - training_window
         stop_training_index = last_index
@@ -250,9 +273,34 @@ def simulate_periodically_retrain(
             window_size_reward=window_for_reward,
         )
 
-        res = simulate(agent, running_env)
-        predictions = predictions + [res]
+        start_net_worth, end_net_worth = simulate(agent, running_env)
+        predictions = predictions + [
+            {"start_net_worth": start_net_worth, "end_net_worth": end_net_worth}
+        ]
         last_index = stop_running_index
+        first_candle = running_candlesticks.head(1)
+        last_candle = running_candlesticks.tail(1)
+        results = results.append(
+            {
+                "open time": first_candle.index.values[0],
+                "close time": last_candle.index.values[0],
+                "open price": first_candle["close"].values[0],
+                "close price": last_candle["close"].values[0],
+                "change in underlying": last_candle["close"].values[0]
+                - first_candle["close"].values[0],
+                "change in underlying %": (
+                    (last_candle["close"].values[0] / first_candle["close"].values[0])
+                    - 1
+                )
+                * 100,
+                "open new worth": start_net_worth,
+                "close net worth": end_net_worth,
+                "net worth change": end_net_worth - start_net_worth,
+                "net worth change %": ((end_net_worth / start_net_worth) - 1) * 100,
+            },
+            ignore_index=True,
+        )
+        results.tail(1).to_csv(results_csv_path, header=False, mode="a")
 
     return predictions
 
@@ -266,9 +314,9 @@ info = simulate_periodically_retrain(
     start_running_index=10000,
     training_window=10000,
     # window_for_agent=12,
-    window_for_env=4,
+    window_for_env=1,
     window_for_reward=20,
-    training_timesteps=500000,
+    training_timesteps=50000,
 )
 for i in info:
     print(i)
