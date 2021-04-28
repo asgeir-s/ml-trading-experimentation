@@ -125,8 +125,8 @@ def create_env(
     )
 
     action_scheme = ManagedRiskOrders(
-        stop=[0.01, 0.02, 0.03, 0.05, 0.08],
-        take=[0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15],
+        stop=[0.01, 0.02, 0.03],
+        take=[0.05, 0.08, 0.1, 0.15, 0.2],
         trade_sizes=[1,],
     )
 
