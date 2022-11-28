@@ -1,4 +1,4 @@
-name: /Users/sogasg/dev/cluda/tb2/tb2-local/trading-systems/conda-env
+name: ./conda-env
 channels:
   - bokeh
   - anaconda
@@ -162,5 +162,5 @@ dependencies:
     - tzlocal==2.0.0
     - urllib3==1.25.8
     - zope-interface==5.1.0
-prefix: /Users/sogasg/dev/cluda/tb2/tb2-local/trading-systems/conda-env
+prefix: ./conda-env
 
