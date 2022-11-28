@@ -7,8 +7,8 @@
 - live execution mode
 
 Implemented models:
-LightGBM
-SVM
-xgBoost
-LSTM (using Tensorflow)
-Reinforcement learning 
+- LightGBM
+- SVM
+- xgBoost
+- LSTM (using Tensorflow)
+- Reinforcement learning 
